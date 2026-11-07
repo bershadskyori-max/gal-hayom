@@ -521,8 +521,8 @@ function openSheet(b,i,src){
    <div class="links">
     ${(b.cams||[]).map(c=>`<a class="cam-link" href="${c.u}" target="_blank" rel="noopener">${ICON.cam}מצלמה · ${c.n}</a>`).join("")}
     <a href="https://www.youtube.com/results?search_query=${q}&sp=CAI%253D" target="_blank" rel="noopener">${ICON.play}סרטונים חדשים ביוטיוב</a>
-    <a href="https://www.tiktok.com/search/video?q=${q}" target="_blank" rel="noopener">${ICON.play}טיקטוק</a>
-    <a href="https://www.instagram.com/explore/search/keyword/?q=${q}" target="_blank" rel="noopener">${ICON.search}אינסטגרם</a>
+    <a href="https://www.google.com/search?q=${q}+site:tiktok.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.play}טיקטוק מהשבוע</a>
+<a href="https://www.google.com/search?q=${q}+site:instagram.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.search}אינסטגרם מהשבוע</a>
    </div>`;
   sheet.style.visibility="visible"; scrim.classList.add("on"); sheetH=sheet.getBoundingClientRect().height+20;
   if(!sheetOpen && (!sheetAnim || sheetY>=sheetH-1)) setSheetY(sheetH);
@@ -624,6 +624,7 @@ async function load(){
   const get=u=>fetch(u+"?t="+Date.now(),{cache:"no-store"}).then(x=>x.ok?x.json():null).catch(()=>null);
   const [d,r,sm]=await Promise.all([get("data/data.json"),get("data/reports.json"),get("data/summary.json")]);
   REPORTS=r; DATA=d; SUMMARY=sm;
+if(DATA&&Array.isArray(DATA.beaches)&&DATA.beaches.length===DATA.marine.length) BEACHES.splice(0,BEACHES.length,...DATA.beaches);
   if(!DATA){ $("updated").textContent="אין נתונים"; $("aiText").innerHTML='<span class="err">לא הצלחתי לטעון את התחזית. נסה לרענן את העמוד.</span>'; renderPeople(); return; }
   build();
   $("updated").textContent="עודכן "+parseTS(DATA.updated).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",weekday:"short",hour:"2-digit",minute:"2-digit"});
