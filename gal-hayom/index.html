@@ -504,7 +504,7 @@ function openSheet(b,i,src){
   $("sheetTitle").firstChild.textContent=b.n; $("sheetSub").textContent=`${b.r} · ${scoreWord(s)}${selDay!=="now"?` · ${b.times[i].slice(11,16)}`:""}`;
   const today=bestWindow(b,0), tmr=bestWindow(b,1);
   const bt=(k,lab)=>k==null?"":`${lab} ב-<span class="num">${b.times[k].slice(11,16)}</span> · ציון ${fmt(b.scores[k],1)} · ${fmt(b.wave[k])} מ׳`;
-  const q=encodeURIComponent(b.n.split(" – ")[0].split(" / ")[0]+" גלים");
+  const q=encodeURIComponent("גלישה "+b.n.split(" – ")[0].split(" / ")[0]);
   const rep=(REPORTS&&REPORTS.reports||[]).filter(r=>r.beach===b.idx);
   $("sheetBody").innerHTML=`
    <div class="facts num">
@@ -520,7 +520,7 @@ function openSheet(b,i,src){
    <p class="sub-h">לראות את הים עכשיו</p>
    <div class="links">
     ${(b.cams||[]).map(c=>`<a class="cam-link" href="${c.u}" target="_blank" rel="noopener">${ICON.cam}מצלמה · ${c.n}</a>`).join("")}
-    <a href="https://www.youtube.com/results?search_query=${q}&sp=CAI%253D" target="_blank" rel="noopener">${ICON.play}סרטונים חדשים ביוטיוב</a>
+    <a href="https://www.youtube.com/results?search_query=${q}&sp=EgIIAw%3D%3D" target="_blank" rel="noopener">${ICON.play}יוטיוב מהשבוע</a>
     <a href="https://www.google.com/search?q=${q}+site:tiktok.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.play}טיקטוק מהשבוע</a>
 <a href="https://www.google.com/search?q=${q}+site:instagram.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.search}אינסטגרם מהשבוע</a>
    </div>`;
