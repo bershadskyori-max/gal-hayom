@@ -120,7 +120,7 @@ def forecast_context
 end
 
 # ---------------- Gemini ----------------
-MODELS = [ENV["GEMINI_MODEL"], "gemini-2.5-flash", "gemini-flash-latest"].compact.reject(&:empty?).uniq
+MODELS = [ENV["GEMINI_MODEL"], "gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"].compact.reject(&:empty?).uniq
 
 def gemini(prompt, search: false)
   key = ENV["GEMINI_API_KEY"].to_s
@@ -141,7 +141,7 @@ def gemini(prompt, search: false)
       return [text, chunks]
     end
     warn "gemini #{model} -> #{res.code}: #{res.body[0, 300]}"
-    next if %w[404 400].include?(res.code)
+    next if %w[404 400 429].include?(res.code)
     raise "Gemini error #{res.code}"
   end
   raise "no Gemini model worked"
