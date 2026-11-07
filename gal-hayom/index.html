@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#051419">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>גל היום</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Assistant:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: phone-first single column. Aurora sky behind everything, live ocean shader in the hero,
+   translucent sticky bar with a two-way segmented switch (forecast / surfers), beach detail in a draggable glass sheet. */
+:root{
+  --bg:#051419; --bg-2:#082430; --glass:rgba(16,52,64,.55); --glass-strong:rgba(10,38,48,.82); --glass-edge:rgba(170,240,235,.16);
+  --fg:#e9f7f7; --muted:#93b6bb; --accent:#4fe6cc; --accent-2:#2bb7d8; --accent-ink:#03231e; --sun:#ff9d66; --sun-2:#ffcf7a;
+  --good:#4fe6cc; --ok:#ffc85c; --poor:#ff7f7f; --flat:#5e7f87; --line:rgba(170,240,235,.12);
+  --aurora-1:rgba(43,183,216,.35); --aurora-2:rgba(79,230,204,.22); --aurora-3:rgba(255,157,102,.20);
+  --display:"Karantina","Assistant",system-ui,sans-serif;
+  --body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --r-lg:24px; --r-md:16px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#e8f4f3; --bg-2:#d7ecec; --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.9); --glass-edge:rgba(255,255,255,.85);
+  --fg:#072a33; --muted:#46686e; --accent:#078f7c; --accent-2:#0a79a0; --accent-ink:#ffffff; --sun:#de5f2c; --sun-2:#c98a00;
+  --good:#078f7c; --ok:#b37a00; --poor:#cf4040; --flat:#7c9499; --line:rgba(7,42,51,.10);
+  --aurora-1:rgba(10,121,160,.20); --aurora-2:rgba(7,143,124,.16); --aurora-3:rgba(222,95,44,.14); color-scheme:light;}}
+:root[data-theme="light"]{
+  --bg:#e8f4f3; --bg-2:#d7ecec; --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.9); --glass-edge:rgba(255,255,255,.85);
+  --fg:#072a33; --muted:#46686e; --accent:#078f7c; --accent-2:#0a79a0; --accent-ink:#ffffff; --sun:#de5f2c; --sun-2:#c98a00;
+  --good:#078f7c; --ok:#b37a00; --poor:#cf4040; --flat:#7c9499; --line:rgba(7,42,51,.10);
+  --aurora-1:rgba(10,121,160,.20); --aurora-2:rgba(7,143,124,.16); --aurora-3:rgba(222,95,44,.14); color-scheme:light;}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;min-height:100%;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;position:relative}
+/* aurora sky: static, layered radial light (no full-viewport motion) */
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60% 40% at 85% 8%,var(--aurora-1),transparent 70%),radial-gradient(50% 35% at 10% 30%,var(--aurora-2),transparent 70%),
+  radial-gradient(70% 40% at 50% 100%,var(--aurora-3),transparent 70%),linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--glass-strong)}
+.app{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px}
+.num{font-variant-numeric:tabular-nums}
+.press{transition:transform 120ms ease-out}
+.press:active{transform:scale(.97)}
+.glass{background:var(--glass);border:1px solid var(--glass-edge);backdrop-filter:blur(22px) saturate(170%);-webkit-backdrop-filter:blur(22px) saturate(170%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* HERO */
+.hero{position:relative;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));overflow:hidden;isolation:isolate;
+  border-radius:0 0 32px 32px;display:flex;flex-direction:column;justify-content:flex-end;min-height:330px}
+#sea{position:absolute;inset:0;width:100%;height:100%;z-index:-2;background:linear-gradient(180deg,#0b3b4a 0%,#0f6e7a 55%,#ff9a62 130%)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(3,18,24,.25) 0%,rgba(3,18,24,0) 30%,rgba(3,18,24,.78) 100%)}
+.hero-top{position:absolute;top:0;inset-inline:0;padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-left,0px)) 0;display:flex;justify-content:space-between;align-items:center;color:#f2fbfb}
+.brand{font-family:var(--display);font-weight:700;font-size:36px;line-height:1;letter-spacing:-.01em;display:flex;gap:8px;align-items:center}
+.brand svg{width:26px;height:26px}
+.pill-glass{font-size:13px;font-weight:600;padding:6px 12px;border-radius:99px;background:rgba(3,18,24,.32);border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#f2fbfb;display:inline-flex;gap:6px;align-items:center}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#7ff5de;box-shadow:0 0 0 0 rgba(127,245,222,.7);animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(127,245,222,0)}100%{box-shadow:0 0 0 0 rgba(127,245,222,0)}}
+.hero-inner{padding:96px max(16px,env(safe-area-inset-left,0px)) 24px;color:#f2fbfb;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.06em;font-weight:700;opacity:.85}
+.best{display:flex;align-items:center;gap:16px}
+.best h1{font-family:var(--display);font-weight:700;font-size:clamp(50px,14vw,74px);line-height:.88;letter-spacing:-.02em;margin:0;text-wrap:balance;
+  background:linear-gradient(180deg,#ffffff 30%,#bff7ee 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.best .sub{font-size:16px;font-weight:600;opacity:.92;margin-top:6px}
+.ring{flex:none;width:92px;height:92px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--display);font-size:42px;font-weight:700;line-height:.9}
+.ring .val small{display:block;font-family:var(--body);font-size:11px;font-weight:700;opacity:.8}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;padding:6px 12px;border-radius:99px;
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+
+/* SEGMENTED SWITCH (sticky translucent bar) */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));
+  padding:10px max(16px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,var(--bg) 0%,color-mix(in srgb,var(--bg) 70%,transparent) 70%,transparent 100%)}
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.seg-ind{position:absolute;top:4px;bottom:4px;inset-inline-start:4px;width:calc(50% - 4px);border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 40%,transparent);will-change:transform}
+.seg button{position:relative;z-index:1;background:none;border:0;min-height:46px;border-radius:14px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:7px;transition:color .25s}
+.seg button svg{width:18px;height:18px}
+.seg button[aria-selected="true"]{color:var(--accent-ink)}
+.seg .count{font-size:12px;font-weight:800;min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;background:var(--sun);color:#2b0f00}
+
+/* VIEWS */
+.views{position:relative}
+.view{display:flex;flex-direction:column;gap:20px}
+.view[hidden]{display:none!important}
+.view.enter{animation:viewIn .42s cubic-bezier(.2,.9,.25,1) both}
+.view.enter.from-left{animation-name:viewInL}
+@keyframes viewIn{from{opacity:.001;transform:translateX(-24px)}to{opacity:1;transform:none}}
+@keyframes viewInL{from{opacity:.001;transform:translateX(24px)}to{opacity:1;transform:none}}
+
+/* CARDS */
+.card{border-radius:var(--r-lg);padding:18px}
+.ai{position:relative}
+.ai::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;
+  background:conic-gradient(from var(--ang,0deg),transparent 0 55%,var(--accent) 72%,var(--sun) 86%,transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:spin 7s linear infinite}
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes spin{to{--ang:360deg}}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.card-head h2{margin:0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px;color:var(--accent)}
+.card-head h2 svg{width:18px;height:18px}
+.ai-text{font-size:17px;line-height:1.65;margin:0;min-height:3.2em;white-space:pre-wrap}
+.ai-text.loading{background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 50%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 1.6s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+.tag{font-size:12.5px;color:var(--muted);font-weight:600}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:99px;padding:6px 13px;font-size:13.5px;font-weight:700;min-height:38px}
+.ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.section-head h2{font-family:var(--display);font-size:42px;font-weight:700;line-height:.95;letter-spacing:-.015em;margin:0}
+
+/* DAY STRIP */
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:10px -2px 0;scrollbar-width:none;scroll-snap-type:x proximity}
+.days::-webkit-scrollbar{display:none}
+.day{flex:none;scroll-snap-align:start;border:1px solid var(--glass-edge);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-radius:16px;padding:8px 14px;min-height:52px;min-width:66px;font-weight:800;font-size:15px;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .3s,color .3s,transform 120ms ease-out}
+.day small{font-weight:600;font-size:12px;color:var(--muted)}
+.day .bar-mini{width:28px;height:4px;border-radius:9px;background:var(--line);overflow:hidden}
+.day .bar-mini i{display:block;height:100%;border-radius:inherit}
+.day[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--accent-ink);border-color:transparent}
+.day[aria-pressed="true"] small{color:inherit;opacity:.8}
+.day:active{transform:scale(.95)}
+
+/* BEACH LIST */
+.list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.beach{border-radius:20px;animation:rise .6s cubic-bezier(.2,.9,.25,1) both;animation-delay:calc(var(--i) * 40ms)}
+@keyframes rise{from{transform:translateY(16px) scale(.985);opacity:.001}to{transform:none;opacity:1}}
+.row{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding:12px 14px;width:100%;background:none;border:0;text-align:start;min-height:68px;border-radius:20px}
+.rank{font-family:var(--display);font-size:30px;font-weight:700;color:var(--muted);width:1.2em;text-align:center}
+.name{min-width:0}
+.name b{display:block;font-size:17px;font-weight:800;line-height:1.2}
+.name span{font-size:13px;color:var(--muted);font-weight:600}
+.meta{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;color:var(--muted);font-weight:700;line-height:1.25}
+.meta .h{color:var(--fg);font-weight:800;font-size:17px}
+.arrow{width:14px;height:14px;vertical-align:-2px}
+.score{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-size:32px;font-weight:700;line-height:1;color:#03231e;position:relative;overflow:hidden}
+.score::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 55%)}
+.s-good{background:linear-gradient(135deg,#9bfbe6,var(--good))}
+.s-ok{background:linear-gradient(135deg,#ffe7a8,var(--ok))}
+.s-poor{background:linear-gradient(135deg,#ffc0b0,var(--poor))}
+.s-flat{background:var(--glass);color:var(--muted);border:1px solid var(--line)}
+.s-flat::after{display:none}
+.fav{background:none;border:0;padding:0;width:44px;height:44px;display:grid;place-items:center;margin:-10px -10px -10px -6px}
+.fav svg{width:21px;height:21px;transition:transform .35s cubic-bezier(.3,1.7,.5,1),fill .2s}
+.fav[aria-pressed="true"] svg{fill:var(--sun);stroke:var(--sun);transform:scale(1.15)}
+.fav[aria-pressed="false"] svg{fill:none;stroke:var(--muted)}
+.group-label{font-size:12.5px;font-weight:800;color:var(--sun);letter-spacing:.05em;margin:6px 6px -2px}
+
+/* ASK */
+.ask form{display:flex;gap:8px;margin-top:10px}
+.ask input{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 40%,transparent);color:var(--fg)}
+.btn-primary{border:0;border-radius:16px;padding:0 20px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--accent-ink);min-height:48px}
+.suggest{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.answer{margin-top:12px;font-size:16px;line-height:1.65;white-space:pre-wrap}
+.answer:empty{display:none}
+
+/* PEOPLE VIEW */
+.scanline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.report{border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;animation:rise .6s cubic-bezier(.2,.9,.25,1) both;animation-delay:calc(var(--i) * 50ms)}
+.report-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.report-top b{font-size:16px;font-weight:800}
+.src{font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--accent-2) 22%,transparent);color:var(--fg)}
+.report p{margin:0;font-size:16px;line-height:1.6}
+.report .foot{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);font-weight:600}
+.vs{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:700}
+.empty{border-radius:var(--r-lg);padding:22px 18px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty svg{width:44px;height:44px;color:var(--accent)}
+.empty h3{margin:0;font-size:19px;font-weight:800}
+.empty p{margin:0;color:var(--muted);max-width:42ch}
+.cams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.cam{border-radius:18px;padding:14px;text-decoration:none;display:flex;flex-direction:column;gap:6px;min-height:92px;position:relative;overflow:hidden}
+.cam::before{content:"";position:absolute;inset:auto -20% -60% -20%;height:90%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent-2) 35%,transparent),transparent);pointer-events:none}
+.cam b{font-size:15.5px;font-weight:800;position:relative}
+.cam span{font-size:12.5px;color:var(--muted);font-weight:600;position:relative}
+.cam .live{position:relative;display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:800;color:var(--poor)}
+.cam .live i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sources span{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+
+/* SHEET */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(2,10,14,.5);opacity:0;pointer-events:none}
+.scrim.on{pointer-events:auto}
+.sheet{position:fixed;z-index:41;inset-inline:0;bottom:0;margin:0 auto;max-width:640px;max-height:88%;display:flex;flex-direction:column;
+  border-radius:28px 28px 0 0;background:var(--glass-strong);border:1px solid var(--glass-edge);border-bottom:0;
+  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 -20px 60px rgba(0,0,0,.35);
+  transform:translateY(110%);will-change:transform;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+.grab{padding:10px max(18px,env(safe-area-inset-left,0px)) 6px;touch-action:none;cursor:grab}
+.grab .handle{width:40px;height:5px;border-radius:9px;background:var(--muted);opacity:.5;margin:0 auto 12px}
+.sheet-head{display:flex;align-items:center;gap:12px}
+.sheet-head h3{margin:0;font-family:var(--display);font-size:40px;line-height:.95;letter-spacing:-.015em;flex:1;min-width:0}
+.sheet-head .tag{display:block;font-family:var(--body);letter-spacing:0}
+.close{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--glass);display:grid;place-items:center}
+.close svg{width:18px;height:18px}
+.sheet-body{overflow-y:auto;overscroll-behavior:contain;padding:8px max(18px,env(safe-area-inset-left,0px)) 22px;display:flex;flex-direction:column;gap:14px}
+.sheet-body>*{flex-shrink:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fact{background:color-mix(in srgb,var(--bg) 35%,transparent);border:1px solid var(--line);border-radius:14px;padding:9px 10px}
+.fact small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.fact b{font-size:18px;font-weight:800}
+.besttime{display:flex;gap:10px;align-items:flex-start;font-weight:700;font-size:15px;border-radius:14px;padding:11px 13px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent),color-mix(in srgb,var(--accent-2) 6%,transparent))}
+.besttime svg{width:20px;height:20px;color:var(--accent);flex:none;margin-top:2px}
+.chart-wrap{overflow-x:auto;border-radius:14px}
+.chart{width:100%;min-width:430px;height:auto;display:block}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:700;font-size:14px;padding:9px 14px;border-radius:99px;
+  background:color-mix(in srgb,var(--bg) 35%,transparent);border:1px solid var(--line);min-height:42px}
+.links a.cam-link{background:linear-gradient(135deg,color-mix(in srgb,var(--poor) 25%,transparent),transparent);border-color:color-mix(in srgb,var(--poor) 40%,transparent)}
+.links a:hover{border-color:var(--accent)}
+.links svg{width:16px;height:16px}
+.sub-h{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin:0}
+
+.foot-note{font-size:13px;color:var(--muted);text-align:center;max-width:52ch;margin:0 auto}
+.err{color:var(--poor)}
+
+@media (min-width:660px){.hero{margin-inline:0;border-radius:32px;margin-top:16px}.hero-top{padding-top:18px}.bar{margin-inline:0;padding-inline:0}}
+@media (max-width:420px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:opacity .2s!important}}
+@media (prefers-reduced-transparency:reduce){.glass,.sheet,.day{background:var(--glass-strong);backdrop-filter:none;-webkit-backdrop-filter:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hero">
+    <canvas id="sea" aria-hidden="true"></canvas>
+    <div class="hero-top">
+      <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M4 12c0-4 3-8 8-8 3 0 5 2 5 4.5S15 12 12.5 12"/></svg>גל היום</div>
+      <div class="pill-glass num"><span class="live-dot" aria-hidden="true"></span><span id="updated">טוען…</span></div>
+    </div>
+    <div class="hero-inner">
+      <div class="eyebrow" id="heroEyebrow">החוף הכי טוב עכשיו</div>
+      <div class="best">
+        <div class="ring" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9bfbe6"/><stop offset="1" stop-color="#ffcf7a"/></linearGradient></defs>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="8"/>
+          <circle id="ringArc" cx="50" cy="50" r="44" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5"/></svg>
+          <div class="val num"><div><span id="ringVal">–</span><small>מתוך 10</small></div></div>
+        </div>
+        <div style="min-width:0"><h1 id="bestName">…</h1><div class="sub" id="bestSub"></div></div>
+      </div>
+      <div class="stats" id="heroStats"></div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="seg glass" role="tablist" aria-label="מקור המידע">
+      <div class="seg-ind" id="segInd" aria-hidden="true"></div>
+      <button role="tab" id="tabF" aria-selected="true" aria-controls="viewF" class="press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 17l5-6 4 4 4-7 5 9"/></svg>לפי תחזית</button>
+      <button role="tab" id="tabP" aria-selected="false" aria-controls="viewP" class="press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.9 2.6 2.6 3 5.2"/></svg>לפי גולשים<span class="count num" id="pCount" hidden></span></button>
+    </div>
+  </div>
+
+  <div class="views">
+    <!-- FORECAST VIEW -->
+    <section class="view" id="viewF" role="tabpanel" aria-labelledby="tabF">
+      <article class="card glass ai" aria-live="polite">
+        <div class="card-head">
+          <h2><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>הסיכום של היום</h2>
+        </div>
+        <p class="ai-text" id="aiText">טוען…</p>
+        <div class="tag" id="aiTag"></div>
+      </article>
+
+      <div>
+        <div class="section-head"><h2>איפה גולשים</h2><span class="tag" id="listTag"></span></div>
+        <div class="days" id="days" role="group" aria-label="בחירת יום"></div>
+        <div class="list" id="list"></div>
+      </div>
+
+    </section>
+
+    <!-- PEOPLE VIEW -->
+    <section class="view" id="viewP" role="tabpanel" aria-labelledby="tabP" hidden>
+      <div>
+        <div class="section-head"><h2>מה גולשים אומרים</h2></div>
+        <div class="scanline" style="margin-top:8px"><span class="tag" id="scanTag"></span></div>
+      </div>
+      <div class="list" id="reports" style="margin-top:0"></div>
+      <div>
+        <div class="section-head"><h2>תראה בעצמך</h2><span class="tag">מצלמות חוף חיות</span></div>
+        <div class="cams" id="cams"></div>
+      </div>
+      <article class="card glass">
+        <h3 class="sub-h">איפה ה-AI מחפש</h3>
+        <div class="sources" id="sources"></div>
+      </article>
+    </section>
+  </div>
+
+  <p class="foot-note">התחזית: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>, מתעדכנת כל 3 שעות. הציון מחושב לפי גובה גל, מחזור ורוח. דיווחי הגולשים והסיכום נכתבים על ידי AI (Gemini) פעמיים ביום. תמיד לבדוק בעיניים לפני שנכנסים למים.</p>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab" id="grab">
+    <div class="handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <span class="score num" id="sheetScore">–</span>
+      <h3 id="sheetTitle">…<span class="tag" id="sheetSub"></span></h3>
+      <button class="close press" id="sheetClose" type="button" aria-label="סגור"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</aside>
+
+<script>
+/* ================= data ================= */
+const GS=s=>`https://gosurf.co.il/cameras/${s}`;
+const BEACHES=[
+ {n:"נהריה",r:"גליל מערבי",cams:[{u:GS("sokolov"),n:"נהריה – סוקולוב"}]},
+ {n:"עכו – ארגמן",r:"גליל מערבי"},
+ {n:"בת גלים",r:"חיפה",cams:[{u:GS("haifa-casino-bat-galim"),n:"חיפה – קזינו בת גלים"}]},
+ {n:"דדו / מרידיאן",r:"חיפה",cams:[{u:GS("haifa-carmel"),n:"חיפה – חוף הכרמל"}]},
+ {n:"עתלית",r:"חוף הכרמל"},
+ {n:"דור – הבונים",r:"חוף הכרמל",cams:[{u:GS("maagan-michael"),n:"מעגן מיכאל (קרוב)"}]},
+ {n:"קיסריה",r:"שרון",cams:[{u:GS("sdot-yam"),n:"שדות ים (צמוד)"}]},
+ {n:"גבעת אולגה",r:"חדרה",cams:[{u:GS("olga"),n:"חוף אולגה"}]},
+ {n:"נתניה – סירונית",r:"שרון"},
+ {n:"הרצליה – זבולון",r:"שרון",cams:[
+   {u:"https://www.windfinder.com/webcams/herzliya_marina",n:"מרינה הרצליה"},
+   {u:"https://www.windfinder.com/webcams/9_beach",n:"הרצליה – צופי ים"},
+   {u:"https://www.surf-forecast.com/breaks/Haambatia-Herzliya/webcams/latest",n:"הרצליה – האמבטיה"}]},
+ {n:"תל אביב – הילטון",r:"גוש דן",cams:[{u:GS("hilton"),n:"תל אביב – הילטון"}]},
+ {n:"בת ים",r:"גוש דן",cams:[{u:GS("rishon-lezion"),n:"ראשון לציון (קרוב)"}]},
+ {n:"פלמחים",r:"שפלה"},
+ {n:"אשדוד – מי עמי",r:"דרום",cams:[{u:GS("ashdod-kshatot"),n:"אשדוד – קשתות"}]},
+ {n:"אשקלון – בר כוכבא",r:"דרום"}];
+const DAYNAMES=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+const COMPASS=["צפון","צפון-מזרח","מזרח","דרום-מזרח","דרום","דרום-מערב","מערב","צפון-מערב"];
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let DATA=null, REPORTS=null, beaches=[], selDay="now", favs=new Set(store.get("favs",[])), view="F";
+
+/* ================= spring (Apple-style: damping ratio + response, interruptible, velocity-aware) ================= */
+function spring({from,to,velocity=0,damping=1,response=.4,onUpdate,onDone}){
+  const k=Math.pow(2*Math.PI/response,2), c=4*Math.PI*damping/response;
+  let x=from, v=velocity, last=performance.now(), raf=0, stopped=false;
+  if(REDUCE){ onUpdate(to,0); onDone&&onDone(); return {stop(){},get value(){return to},get velocity(){return 0}}; }
+  function step(now){ if(stopped) return; let dt=Math.min(.064,(now-last)/1000); last=now;
+    const n=Math.ceil(dt/.004); const h=dt/n;
+    for(let i=0;i<n;i++){ const a=-k*(x-to)-c*v; v+=a*h; x+=v*h; }
+    if(Math.abs(v)<.5 && Math.abs(x-to)<.3){ x=to; v=0; onUpdate(x,v); onDone&&onDone(); return; }
+    onUpdate(x,v); raf=requestAnimationFrame(step); }
+  raf=requestAnimationFrame(step);
+  return {stop(){stopped=true;cancelAnimationFrame(raf)},get value(){return x},get velocity(){return v}};
+}
+const project=(v,d=.998)=>(v/1000)*d/(1-d);
+const rubber=(o,dim,c=.55)=>(o*dim*c)/(dim+c*Math.abs(o));
+
+/* ================= scoring ================= */
+function heightScore(h){ if(h==null) return 0;
+  if(h<0.3) return 0; if(h<0.6) return (h-0.3)/0.3*3.5; if(h<1) return 3.5+(h-0.6)/0.4*3;
+  if(h<=2.2) return 6.5+Math.min(1,(h-1)/0.8)*2; return Math.max(3,8.5-(h-2.2)*2.2); }
+function windInfo(dir,spd){ const on=Math.cos((dir-270)*Math.PI/180); let type=on>0.5?"on":on<-0.4?"off":"cross"; if(spd<8) type="calm"; return {on,type}; }
+function hourScore(b,i){
+  const h=b.wave[i], T=b.period[i], spd=b.wind[i], dir=b.wdir[i]; if(h==null) return null;
+  let s=heightScore(h); s+=Math.max(0,Math.min(1,((T||0)-4)/5))*2;
+  const w=windInfo(dir,spd);
+  if(w.on>0) s-=Math.min(4,(spd/28)*3.5*w.on); else s+=Math.min(1,(-w.on)*(spd<25?1:0.3));
+  if(spd>35) s-=1.5; if(h<0.3) s=Math.min(s,1);
+  return Math.max(0,Math.min(10,s));
+}
+const scoreClass=s=>s==null?"s-flat":s>=6.5?"s-good":s>=4?"s-ok":s>=1.5?"s-poor":"s-flat";
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const scoreColor=s=>cssVar(s>=6.5?"--good":s>=4?"--ok":s>=1.5?"--poor":"--flat");
+const fmt=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toFixed(d);
+const compass=d=>COMPASS[Math.round(((d%360)+360)%360/45)%8];
+const windWord=t=>({off:"רוח מהיבשה",on:"רוח מהים",cross:"רוח צד",calm:"כמעט בלי רוח"})[t];
+function scoreWord(s){ if(s==null) return "אין נתונים"; if(s>=8) return "אפי, לרוץ למים"; if(s>=6.5) return "עובד טוב"; if(s>=4) return "גליש, שווה בדיקה"; if(s>=1.5) return "חלש"; return "שטוח"; }
+
+/* ================= time ================= */
+function nowLocalISO(){
+  const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false}).formatToParts(new Date());
+  const g=t=>p.find(x=>x.type===t).value; return `${g("year")}-${g("month")}-${g("day")}T${g("hour")==="24"?"00":g("hour")}:00`;
+}
+function dayLabel(dateStr,idx){ if(idx===0) return "היום"; if(idx===1) return "מחר"; return DAYNAMES[new Date(dateStr+"T12:00:00").getDay()]; }
+const parseTS=s=>new Date(String(s).replace(/([+-]\d{2})(\d{2})$/,"$1:$2"));
+function ago(ts){ const m=Math.round((Date.now()-parseTS(ts))/60000); if(isNaN(m)) return ""; if(m<60) return `לפני ${Math.max(1,m)} דק׳`; const h=Math.round(m/60); if(h<24) return h===1?"לפני שעה":`לפני ${h} שעות`; const d=Math.round(h/24); return d===1?"אתמול":`לפני ${d} ימים`; }
+
+/* ================= model ================= */
+function build(){
+  const M=DATA.marine, W=DATA.wind; const times=M[0].hourly.time;
+  const nowISO=nowLocalISO(); let nowI=times.indexOf(nowISO); if(nowI<0) nowI=Math.max(0,times.filter(t=>t<nowISO).length-1);
+  beaches=BEACHES.map((b,k)=>{
+    const m=M[k].hourly, w=W[k].hourly, wd=W[k].daily;
+    const o={...b,idx:k,times,period:m.wave_period.map((p,i)=>Math.max(p??0,m.swell_wave_period[i]??0)),wdir:w.wind_direction_10m,wind:w.wind_speed_10m,
+      gust:w.wind_gusts_10m,air:w.temperature_2m,sst:m.sea_surface_temperature,sunrise:wd.sunrise,sunset:wd.sunset,dates:wd.time};
+    o.wave=m.wave_height.map((h,i)=>h==null?null:Math.max(h,m.swell_wave_height[i]??0));
+    o.scores=times.map((_,i)=>hourScore(o,i));
+    return o;});
+  DATA.nowI=nowI; DATA.dates=beaches[0].dates;
+}
+function daylightIdx(b,d){ const date=b.dates[d], sr=b.sunrise[d], ss=b.sunset[d]; const a=[]; b.times.forEach((t,i)=>{ if(t.startsWith(date)&&t>=sr.slice(0,13)&&t<=ss) a.push(i)}); return a; }
+function bestWindow(b,d){ let idxs=daylightIdx(b,d); if(d===0) idxs=idxs.filter(i=>i>=DATA.nowI); if(!idxs.length) return null;
+  let best=idxs[0]; idxs.forEach(i=>{ if((b.scores[i]??-1)>(b.scores[best]??-1)) best=i}); return best; }
+const viewIndex=b=>selDay==="now"?DATA.nowI:(bestWindow(b,selDay)??DATA.nowI);
+const ranked=()=>beaches.map(b=>{const i=viewIndex(b);return {b,i,s:b.scores[i]}}).sort((x,y)=>(y.s??-1)-(x.s??-1));
+
+/* ================= icons ================= */
+const ICON={
+ arrow:r=>`<svg class="arrow" style="transform:rotate(${r}deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V4M5 11l7-7 7 7"/></svg>`,
+ star:'<svg viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
+ clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ play:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+ cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg>',
+ search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+ chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>'};
+
+/* ================= render: forecast ================= */
+function renderDays(){
+  const el=$("days"); el.innerHTML="";
+  const mk=(key,label,sub,best)=>{const b=document.createElement("button");b.className="day";b.type="button";b.setAttribute("aria-pressed",String(selDay===key));
+    b.innerHTML=`${label}<small class="num">${sub}</small><span class="bar-mini" aria-hidden="true"><i style="width:${Math.round((best||0)*10)}%;background:${scoreColor(best||0)}"></i></span>`;
+    b.onclick=()=>{ if(selDay===key) return; selDay=key; renderForecast(true); };el.appendChild(b);};
+  const nowBest=Math.max(...beaches.map(b=>b.scores[DATA.nowI]??0));
+  mk("now","עכשיו",beaches[0].times[DATA.nowI].slice(11,16),nowBest);
+  DATA.dates.forEach((d,i)=>{const best=Math.max(...beaches.map(b=>{const k=bestWindow(b,i);return k==null?0:(b.scores[k]??0)})); mk(i,dayLabel(d,i),d.slice(8,10)+"/"+d.slice(5,7),best);});
+}
+let ringAnim=null;
+function renderHero(){
+  const top=ranked()[0]; const b=top.b, i=top.i;
+  $("heroEyebrow").textContent= selDay==="now"?"החוף הכי טוב עכשיו": selDay===0?"החוף הכי טוב היום":`החוף הכי טוב ביום ${dayLabel(DATA.dates[selDay],selDay)}`;
+  $("bestName").textContent=b.n;
+  $("bestSub").textContent= selDay==="now"? `${b.r} · ${scoreWord(top.s)}` : `${b.r} · הכי טוב ב-${b.times[i].slice(11,16)}`;
+  const arc=$("ringArc"), target=top.s||0; const cur=ringAnim?ringAnim.value:0;
+  ringAnim&&ringAnim.stop();
+  ringAnim=spring({from:cur,to:target,velocity:ringAnim?ringAnim.velocity:0,damping:1,response:.9,onUpdate:x=>{arc.style.strokeDashoffset=276.5*(1-x/10); $("ringVal").textContent=x.toFixed(1);}});
+  const w=windInfo(b.wdir[i],b.wind[i]);
+  $("heroStats").innerHTML=`<span class="chip num">גל ${fmt(b.wave[i])} מ׳</span><span class="chip num">מחזור ${fmt(b.period[i],0)} שנ׳</span>
+   <span class="chip num">${windWord(w.type)} · ${fmt(b.wind[i],0)} קמ״ש</span><span class="chip num">מים ${fmt(b.sst[i],0)}°</span>`;
+}
+function renderList(){
+  const el=$("list"); el.innerHTML=""; const r=ranked();
+  $("listTag").textContent= selDay==="now"?`נכון ל-${beaches[0].times[DATA.nowI].slice(11,16)}`:"לפי השעה הכי טובה ביום";
+  const favRows=r.filter(x=>favs.has(x.b.idx)), rest=r.filter(x=>!favs.has(x.b.idx)); let n=0;
+  const label=t=>{const d=document.createElement("div");d.className="group-label";d.textContent=t;el.appendChild(d);};
+  if(favRows.length){label("המועדפים שלך"); favRows.forEach(x=>el.appendChild(beachEl(x,r.indexOf(x)+1,n++))); label("כל החופים");}
+  rest.forEach(x=>el.appendChild(beachEl(x,r.indexOf(x)+1,n++)));
+}
+function beachEl({b,i,s},rank,n){
+  const w=windInfo(b.wdir[i],b.wind[i]);
+  const art=document.createElement("article"); art.className="beach glass"; art.style.setProperty("--i",n);
+  art.innerHTML=`<div class="row press" role="button" tabindex="0" aria-label="${b.n}, ציון ${s==null?"אין":Math.round(s)}">
+    <span class="rank num">${rank}</span>
+    <span class="name"><b>${b.n}</b><span>${b.r}${selDay!=="now"?` · ${b.times[i].slice(11,16)}`:""}${b.cams?" · מצלמה":""}</span></span>
+    <span class="meta num"><span class="h">${fmt(b.wave[i])} מ׳</span><span>${fmt(b.wind[i],0)} קמ״ש ${ICON.arrow((b.wdir[i]+180)%360)}</span></span>
+    <span style="display:flex;align-items:center;gap:4px"><span class="score num ${scoreClass(s)}">${s==null?"–":Math.round(s)}</span>
+    <button class="fav" type="button" aria-label="חוף מועדף: ${b.n}" aria-pressed="${favs.has(b.idx)}">${ICON.star}</button></span></div>`;
+  const row=art.querySelector(".row");
+  row.addEventListener("click",e=>{ if(e.target.closest(".fav")) return; openSheet(b,i,row); });
+  row.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!e.target.closest(".fav")){e.preventDefault();openSheet(b,i,row);} });
+  art.querySelector(".fav").addEventListener("click",e=>{e.stopPropagation(); favs.has(b.idx)?favs.delete(b.idx):favs.add(b.idx); store.set("favs",[...favs]); renderList();});
+  return art;
+}
+function renderForecast(dayChanged){ renderDays(); renderHero(); renderList(); runAI(); }
+
+/* ================= chart ================= */
+function chartSVG(b){
+  const W=600,H=180,pl=30,pr=8,pt=14,pb=38,n=b.times.length;
+  const maxH=Math.max(1.5,Math.ceil(Math.max(...b.wave.filter(v=>v!=null))*2)/2);
+  const x=i=>W-pr-(i/(n-1))*(W-pl-pr), y=v=>pt+(1-v/maxH)*(H-pt-pb);
+  let d="",st=false; b.wave.forEach((v,i)=>{ if(v==null) return; d+=(st?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1); st=true;});
+  const area=d+`L${x(n-1)} ${y(0)}L${x(0)} ${y(0)}Z`;
+  const mu=cssVar("--muted"), ln=cssVar("--line"), ac=cssVar("--accent"), ac2=cssVar("--accent-2"), sun=cssVar("--sun");
+  let grid=""; for(let v=0;v<=maxH+1e-6;v+=0.5) grid+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="${ln}"/><text x="${pl-6}" y="${y(v)+4}" font-size="11" fill="${mu}" text-anchor="end">${v}</text>`;
+  let night=""; b.dates.forEach((dt,k)=>{ const sr=b.times.findIndex(t=>t>=b.sunrise[k].slice(0,13)), ss=b.times.findIndex(t=>t>b.sunset[k]); const d0=b.times.indexOf(dt+"T00:00");
+    if(d0>=0&&sr>d0) night+=`<rect x="${x(sr)}" y="${pt}" width="${x(d0)-x(sr)}" height="${H-pt-pb}" fill="${ln}"/>`;
+    const nextD=k+1<b.dates.length?b.times.indexOf(b.dates[k+1]+"T00:00"):n-1; if(ss>0&&nextD>ss) night+=`<rect x="${x(nextD)}" y="${pt}" width="${x(ss)-x(nextD)}" height="${H-pt-pb}" fill="${ln}"/>`;});
+  let strip=""; const bw=(W-pl-pr)/n; b.scores.forEach((s,i)=>{strip+=`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${H-pb+6}" width="${(bw+.4).toFixed(1)}" height="8" rx="1" fill="${s==null?ln:scoreColor(s)}"/>`;});
+  let days=""; b.dates.forEach((dt,k)=>{const i0=b.times.indexOf(dt+"T00:00"); if(i0<0)return; days+=`<text x="${x(Math.min(n-1,i0+12))}" y="${H-6}" font-size="12" font-weight="700" fill="${mu}" text-anchor="middle">${dayLabel(dt,k)}</text>`;});
+  const nx=x(DATA.nowI);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="תחזית גובה גלים ל-5 ימים">
+   <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ac}" stop-opacity=".55"/><stop offset="1" stop-color="${ac2}" stop-opacity="0"/></linearGradient></defs>
+   ${night}${grid}<path d="${area}" fill="url(#ga)"/><path d="${d}" fill="none" stroke="${ac}" stroke-width="2.4" stroke-linejoin="round"/>
+   ${strip}${days}<line x1="${nx}" x2="${nx}" y1="${pt}" y2="${H-pb}" stroke="${sun}" stroke-width="2" stroke-dasharray="3 3"/>
+   <circle cx="${nx}" cy="${y(b.wave[DATA.nowI]??0)}" r="5" fill="${sun}" stroke="${cssVar("--bg")}" stroke-width="2"/>
+   <text x="${W-pr}" y="${pt-3}" font-size="10" fill="${mu}" text-anchor="end">מטר · אזור כהה = לילה</text></svg>`;
+}
+
+/* ================= sheet (drag, momentum projection, rubber-band, interruptible springs) ================= */
+const sheet=$("sheet"), scrim=$("scrim"); let sheetY=0, sheetH=600, sheetAnim=null, sheetOpen=false, lastFocus=null;
+function setSheetY(y){ sheetY=y; sheet.style.transform=`translateY(${y}px)`; scrim.style.opacity=Math.max(0,Math.min(1,1-y/sheetH)); }
+function animateSheet(to,velocity=0,damping=1,response=.38){
+  sheetAnim&&sheetAnim.stop();
+  sheetAnim=spring({from:sheetY,to,velocity,damping,response,onUpdate:setSheetY,onDone:()=>{ if(to>=sheetH){ sheet.style.visibility="hidden"; } }});
+}
+function openSheet(b,i,src){
+  lastFocus=src; const w=windInfo(b.wdir[i],b.wind[i]); const s=b.scores[i];
+  $("sheetScore").className="score num "+scoreClass(s); $("sheetScore").textContent=s==null?"–":Math.round(s);
+  $("sheetTitle").firstChild.textContent=b.n; $("sheetSub").textContent=`${b.r} · ${scoreWord(s)}${selDay!=="now"?` · ${b.times[i].slice(11,16)}`:""}`;
+  const today=bestWindow(b,0), tmr=bestWindow(b,1);
+  const bt=(k,lab)=>k==null?"":`${lab} ב-<span class="num">${b.times[k].slice(11,16)}</span> · ציון ${fmt(b.scores[k],1)} · ${fmt(b.wave[k])} מ׳`;
+  const q=encodeURIComponent(b.n.split(" – ")[0].split(" / ")[0]+" גלים");
+  const rep=(REPORTS&&REPORTS.reports||[]).filter(r=>r.beach===b.idx);
+  $("sheetBody").innerHTML=`
+   <div class="facts num">
+    <div class="fact"><small>גובה גל</small><b>${fmt(b.wave[i])} מ׳</b></div>
+    <div class="fact"><small>מחזור</small><b>${fmt(b.period[i],0)} שנ׳</b></div>
+    <div class="fact"><small>רוח מ${compass(b.wdir[i])}</small><b>${fmt(b.wind[i],0)} <span style="font-size:12px">קמ״ש</span></b></div>
+    <div class="fact"><small>מים / אוויר</small><b>${fmt(b.sst[i],0)}° / ${fmt(b.air[i],0)}°</b></div>
+   </div>
+   <div class="besttime">${ICON.clock}<span>${[bt(today,"היום הכי טוב"),bt(tmr,"מחר הכי טוב")].filter(Boolean).join("<br>")||"לא נשאר היום חלון אור טוב"}</span></div>
+   <div class="chart-wrap">${chartSVG(b)}</div>
+   <p class="sub-h">${windWord(w.type)} · משבים עד ${fmt(b.gust[i],0)} קמ״ש</p>
+   ${rep.length?`<p class="sub-h">מה גולשים אמרו על החוף</p>${rep.map((r,k)=>reportHTML(r,k)).join("")}`:""}
+   <p class="sub-h">לראות את הים עכשיו</p>
+   <div class="links">
+    ${(b.cams||[]).map(c=>`<a class="cam-link" href="${c.u}" target="_blank" rel="noopener">${ICON.cam}מצלמה · ${c.n}</a>`).join("")}
+    <a href="https://www.youtube.com/results?search_query=${q}&sp=CAI%253D" target="_blank" rel="noopener">${ICON.play}סרטונים חדשים ביוטיוב</a>
+    <a href="https://www.tiktok.com/search/video?q=${q}" target="_blank" rel="noopener">${ICON.play}טיקטוק</a>
+    <a href="https://www.instagram.com/explore/search/keyword/?q=${q}" target="_blank" rel="noopener">${ICON.search}אינסטגרם</a>
+   </div>`;
+  sheet.style.visibility="visible"; scrim.classList.add("on"); sheetH=sheet.getBoundingClientRect().height+20;
+  if(!sheetOpen && (!sheetAnim || sheetY>=sheetH-1)) setSheetY(sheetH);
+  sheetOpen=true; $("sheetBody").scrollTop=0; animateSheet(0,0,1,.38);
+  setTimeout(()=>$("sheetClose").focus({preventScroll:true}),60);
+}
+function closeSheet(velocity=0){ if(!sheetOpen) return; sheetOpen=false; scrim.classList.remove("on"); animateSheet(sheetH,velocity,1,.32); lastFocus&&lastFocus.focus({preventScroll:true}); }
+$("sheetClose").onclick=()=>closeSheet(); scrim.addEventListener("pointerdown",()=>closeSheet());
+addEventListener("keydown",e=>{ if(e.key==="Escape"&&sheetOpen) closeSheet(); });
+(function drag(){
+  let startY=0, startSheet=0, hist=[], dragging=false, pid=null, fromBody=false;
+  const begin=(e,body)=>{ if(!sheetOpen) return; fromBody=body; pid=e.pointerId; startY=e.clientY; startSheet=sheetAnim?sheetAnim.value:sheetY; sheetAnim&&sheetAnim.stop(); hist=[{y:e.clientY,t:e.timeStamp}]; dragging=!body; if(!body) e.currentTarget.setPointerCapture(pid); };
+  const move=e=>{ if(e.pointerId!==pid) return; const dy=e.clientY-startY;
+    if(!dragging){ if(fromBody && $("sheetBody").scrollTop<=0 && dy>10){ dragging=true; startY=e.clientY; try{$("sheetBody").setPointerCapture(pid)}catch(_){}} else return; }
+    const raw=startSheet+(e.clientY-startY); setSheetY(raw<0?-rubber(-raw,sheetH):raw);
+    hist.push({y:e.clientY,t:e.timeStamp}); if(hist.length>6) hist.shift(); };
+  const end=e=>{ if(e.pointerId!==pid) return; pid=null; if(!dragging) return; dragging=false;
+    const a=hist[0], z=hist[hist.length-1]; const v=z.t>a.t?(z.y-a.y)/(z.t-a.t)*1000:0;
+    const projected=sheetY+project(v);
+    if(projected>sheetH*0.45 || v>900) closeSheet(v); else animateSheet(0,v,Math.abs(v)>500?.8:1,.32); };
+  $("grab").addEventListener("pointerdown",e=>begin(e,false));
+  $("sheetBody").addEventListener("pointerdown",e=>begin(e,true));
+  [$("grab"),$("sheetBody")].forEach(el=>{el.addEventListener("pointermove",move);el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);});
+})();
+
+/* ================= segmented switch ================= */
+const segInd=$("segInd"); let segAnim=null, segX=0;
+function segTarget(){ const w=segInd.parentElement.getBoundingClientRect().width; return view==="F"?0:-(w-8)/2; } // RTL: second tab sits to the left
+function setView(v,instant){
+  if(v===view && !instant) return; const prev=view; view=v;
+  $("tabF").setAttribute("aria-selected",String(v==="F")); $("tabP").setAttribute("aria-selected",String(v==="P"));
+  const to=segTarget(); segAnim&&segAnim.stop();
+  if(instant){ segX=to; segInd.style.transform=`translateX(${to}px)`; }
+  else segAnim=spring({from:segX,to,velocity:segAnim?segAnim.velocity:0,damping:1,response:.35,onUpdate:x=>{segX=x;segInd.style.transform=`translateX(${x}px)`;}});
+  const show=v==="F"?$("viewF"):$("viewP"), hide=v==="F"?$("viewP"):$("viewF");
+  hide.hidden=true; show.hidden=false; show.classList.remove("enter","from-left"); void show.offsetWidth;
+  if(!instant){ show.classList.add("enter"); if(v==="F") show.classList.add("from-left"); }
+  store.set("view",v);
+}
+$("tabF").onclick=()=>setView("F"); $("tabP").onclick=()=>setView("P");
+[$("tabF"),$("tabP")].forEach(t=>t.addEventListener("keydown",e=>{ if(e.key==="ArrowLeft"||e.key==="ArrowRight"){ e.preventDefault(); const nv=view==="F"?"P":"F"; setView(nv); $(nv==="F"?"tabF":"tabP").focus(); }}));
+addEventListener("resize",()=>{ segX=segTarget(); segInd.style.transform=`translateX(${segX}px)`; });
+
+/* ================= people view ================= */
+function reportHTML(r,k){
+  const b=r.beach!=null?BEACHES[r.beach]:null; const bb=r.beach!=null?beaches[r.beach]:null;
+  let vs=""; if(bb&&r.rating!=null){ const ts=parseTS(r.when); const iso=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jerusalem",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false}).format(ts).replace(", ","T").slice(0,13)+":00";
+    const ii=bb.times.indexOf(iso); const fs=ii>=0?bb.scores[ii]:null;
+    if(fs!=null){ const ps=r.rating*2; const diff=ps-fs; vs=`<span class="vs">${Math.abs(diff)<1.5?"התחזית צדקה":diff>0?"היה יותר טוב מהתחזית":"היה פחות טוב מהתחזית"} · תחזית ${Math.round(fs)} מול שטח ${Math.round(ps)}</span>`; } }
+  return `<article class="report glass" style="--i:${k}">
+    <div class="report-top"><b>${esc(b?b.n:(r.spot||"חוף לא ידוע"))}</b><span class="src">${esc(r.source||"רשת")}</span></div>
+    <p>${esc(r.text||"")}</p>
+    ${vs}
+    <div class="foot"><span class="num">${esc(r.size||"")}${r.size&&r.when?" · ":""}${r.when?ago(r.when):""}</span>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">למקור</a>`:""}</div>
+  </article>`;
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function renderPeople(){
+  const rs=(REPORTS&&REPORTS.reports||[]).slice().sort((a,b)=>parseTS(b.when)-parseTS(a.when));
+  $("pCount").hidden=!rs.length; $("pCount").textContent=rs.length;
+  $("scanTag").textContent=REPORTS?`ה-AI סרק את הרשת ${ago(REPORTS.scanned)} · ${rs.length} דיווחים מ-24 השעות האחרונות`:"עוד לא בוצעה סריקה";
+  $("reports").innerHTML= rs.length? rs.map((r,k)=>reportHTML(r,k)).join("") :
+   `<div class="empty glass">${ICON.chat}<h3>אין דיווחים חדשים מגולשים</h3><p>${esc(REPORTS&&REPORTS.note||"Claude יחפש דיווחים בסריקה הבאה.")}</p><p>בינתיים אפשר להציץ במצלמות ולראות בעצמך.</p></div>`;
+  $("cams").innerHTML=BEACHES.flatMap(b=>(b.cams||[]).map(c=>`<a class="cam glass press" href="${c.u}" target="_blank" rel="noopener"><span class="live"><i></i>LIVE</span><b>${c.n}</b><span>${b.n}</span></a>`)).join("");
+  $("sources").innerHTML=(REPORTS&&REPORTS.sources_checked||[]).map(s=>`<span>${esc(s)}</span>`).join("");
+}
+
+/* ================= AI ================= */
+function contextFor(dayKey){
+  return beaches.map(b=>{ const parts=[]; const dIdx=dayKey==="now"?[0,1]:[dayKey];
+    if(dayKey==="now"){const i=DATA.nowI; const w=windInfo(b.wdir[i],b.wind[i]); parts.push(`עכשיו: ציון ${fmt(b.scores[i])}, גל ${fmt(b.wave[i])}מ, מחזור ${fmt(b.period[i],0)}ש, ${windWord(w.type)} ${fmt(b.wind[i],0)}קמ"ש`);}
+    dIdx.forEach(d=>{const k=bestWindow(b,d); if(k!=null){const w=windInfo(b.wdir[k],b.wind[k]); parts.push(`${dayLabel(DATA.dates[d],d)} שיא ב-${b.times[k].slice(11,16)}: ציון ${fmt(b.scores[k])}, גל ${fmt(b.wave[k])}מ, מחזור ${fmt(b.period[k],0)}ש, ${windWord(w.type)} ${fmt(b.wind[k],0)}קמ"ש`);}});
+    return `${b.n} (${b.r}): ${parts.join(" | ")}`;}).join("\n");
+}
+function peopleContext(){ const rs=REPORTS&&REPORTS.reports||[]; if(!rs.length) return "אין דיווחי גולשים עדכניים."; return rs.map(r=>`${r.beach!=null?BEACHES[r.beach].n:r.spot} (${r.source}, ${ago(r.when)}): ${r.text}${r.rating!=null?` [דירוג ${r.rating}/5]`:""}`).join("\n"); }
+function fullContext(){ return beaches.map(b=>{const segs=[]; DATA.dates.forEach((d,k)=>{daylightIdx(b,k).filter((_,j)=>j%3===0).forEach(i=>segs.push(`${dayLabel(d,k)} ${b.times[i].slice(11,16)} ${fmt(b.wave[i])}מ/${fmt(b.period[i],0)}ש/רוח ${fmt(b.wind[i],0)} מ${compass(b.wdir[i])}/ציון ${fmt(b.scores[i],0)}`));}); return `${b.n}: ${segs.join("; ")}`;}).join("\n"); }
+function ruleSummary(){
+  const r=ranked(); const good=r.filter(x=>x.s>=6.5), ok=r.filter(x=>x.s>=4&&x.s<6.5); const top=r[0];
+  if(top.s<1.5) return "הים כמעט שטוח לאורך כל החוף. יום טוב לשחייה או לסדר ציוד.";
+  let t=`${top.b.n} מוביל עם ${fmt(top.b.wave[top.i])} מטר ומחזור של ${fmt(top.b.period[top.i],0)} שניות${selDay!=="now"?`, הכי טוב סביב ${top.b.times[top.i].slice(11,16)}`:""}. `;
+  if(good.length>1) t+=`עובד טוב גם ב${good.slice(1,4).map(x=>x.b.n).join(", ")}. `; else if(ok.length) t+=`גליש גם ב${ok.slice(0,3).map(x=>x.b.n).join(", ")}. `;
+  const w=windInfo(top.b.wdir[top.i],top.b.wind[top.i]); t+= w.type==="on"?"הרוח מהים, אז כדאי להקדים לבוקר.":w.type==="off"?"רוח מהיבשה מחליקה את הגלים.":"";
+  return t.trim();
+}
+let SUMMARY=null;
+function runAI(){
+  const fresh=SUMMARY&&SUMMARY.text&&(Date.now()-parseTS(SUMMARY.created))<14*3600e3;
+  if(selDay==="now"&&fresh){
+    $("aiText").textContent=SUMMARY.text;
+    $("aiTag").textContent=`נכתב על ידי AI (Gemini) ${ago(SUMMARY.created)}`;
+  } else {
+    $("aiText").textContent=ruleSummary();
+    $("aiTag").textContent="סיכום אוטומטי מהנתונים";
+  }
+}
+
+/* ================= load ================= */
+async function load(){
+  const get=u=>fetch(u+"?t="+Date.now(),{cache:"no-store"}).then(x=>x.ok?x.json():null).catch(()=>null);
+  const [d,r,sm]=await Promise.all([get("data/data.json"),get("data/reports.json"),get("data/summary.json")]);
+  REPORTS=r; DATA=d; SUMMARY=sm;
+  if(!DATA){ $("updated").textContent="אין נתונים"; $("aiText").innerHTML='<span class="err">לא הצלחתי לטעון את התחזית. נסה לרענן את העמוד.</span>'; renderPeople(); return; }
+  build();
+  $("updated").textContent="עודכן "+parseTS(DATA.updated).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",weekday:"short",hour:"2-digit",minute:"2-digit"});
+  renderPeople(); renderForecast();
+  setView(store.get("view","F")==="P"?"P":"F",true);
+}
+setView("F",true); load();
+
+/* ================= ocean shader ================= */
+(function(){
+  const c=$("sea"); const gl=c.getContext("webgl",{antialias:false}); if(!gl) return;
+  const vs=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+  const fs=`precision mediump float;uniform vec2 r;uniform float t;
+  float wave(vec2 uv,float f,float s,float a,float o){return sin(uv.x*f+t*s+o+sin(uv.x*f*.5-t*s*.7)*.8)*a;}
+  void main(){vec2 uv=gl_FragCoord.xy/r;uv.y=1.-uv.y;
+   vec3 col=mix(vec3(.05,.24,.31),vec3(.09,.45,.5),uv.y);
+   col=mix(col,vec3(1.,.62,.4),smoothstep(.5,0.,length((uv-vec2(.2,.16))*vec2(1.,1.7)))*.55);
+   for(int i=0;i<6;i++){float fi=float(i);
+     float h=.36+fi*.115+wave(uv,6.+fi*2.3,.45+fi*.16,.03+.012*fi,fi*1.7)+wave(uv,15.+fi*3.,1.1+fi*.2,.008,fi);
+     float m=smoothstep(h,h+.004,uv.y);
+     vec3 deep=mix(vec3(.07,.58,.6),vec3(.02,.15,.2),fi/5.);
+     float crest=smoothstep(.022,.0,abs(uv.y-h))*(.38-.05*fi);
+     col=mix(col,deep,m*.93);col+=vec3(.75,1.,.95)*crest;}
+   gl_FragColor=vec4(col,1.);}`;
+  const sh=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;};
+  const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr,gl.LINK_STATUS)) return; gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(pr,"p");gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  const ur=gl.getUniformLocation(pr,"r"),ut=gl.getUniformLocation(pr,"t");
+  function size(){const d=Math.min(devicePixelRatio||1,1.5);c.width=c.clientWidth*d;c.height=c.clientHeight*d;gl.viewport(0,0,c.width,c.height);}
+  size(); addEventListener("resize",size); const t0=performance.now(); let running=false;
+  function frame(now){gl.uniform2f(ur,c.width,c.height);gl.uniform1f(ut,REDUCE?2:(now-t0)/1000);gl.drawArrays(gl.TRIANGLE_STRIP,0,4); if(!REDUCE&&!document.hidden) requestAnimationFrame(frame); else running=false;}
+  const go=()=>{ if(!running){running=true;requestAnimationFrame(frame);} };
+  go(); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) go(); });
+})();
+</script>
+
+</body>
+</html>

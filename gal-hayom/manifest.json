@@ -1,0 +1,13 @@
+{
+  "name": "גל היום",
+  "short_name": "גל היום",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#051419",
+  "theme_color": "#051419",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

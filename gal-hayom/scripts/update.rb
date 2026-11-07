@@ -1,0 +1,225 @@
+# Gal Hayom update robot.
+# Usage: ruby scripts/update.rb [forecast|people|all]
+#   forecast – fetch the 5-day marine + wind forecast (no AI, free)        -> data/data.json
+#   people   – ask Gemini (with Google Search) for first-hand surfer posts -> data/reports.json
+#              and write a short Hebrew summary                           -> data/summary.json
+#   all      – both
+# Needs GEMINI_API_KEY in the environment for "people". GEMINI_MODEL is optional.
+require "net/http"
+require "json"
+require "time"
+require "uri"
+
+ENV["TZ"] = "Asia/Jerusalem"
+ROOT = File.expand_path("..", __dir__)
+DATA_DIR = File.join(ROOT, "data")
+MODE = (ARGV[0] || "all").strip
+MODE.replace("all") if MODE.empty?
+
+BEACHES = [
+  ["נהריה", 33.010, 35.050], ["עכו – ארגמן", 32.915, 35.050], ["בת גלים", 32.830, 34.955],
+  ["דדו / מרידיאן", 32.795, 34.945], ["עתלית", 32.690, 34.915], ["דור – הבונים", 32.615, 34.905],
+  ["קיסריה", 32.500, 34.875], ["גבעת אולגה", 32.440, 34.860], ["נתניה – סירונית", 32.330, 34.835],
+  ["הרצליה – זבולון", 32.170, 34.790], ["תל אביב – הילטון", 32.090, 34.760], ["בת ים", 32.020, 34.730],
+  ["פלמחים", 31.930, 34.685], ["אשדוד – מי עמי", 31.800, 34.620], ["אשקלון – בר כוכבא", 31.670, 34.540]
+].freeze
+
+def get_json(url, tries: 3)
+  tries.times do |i|
+    uri = URI(url)
+    res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: 60, open_timeout: 20) { |h| h.get(uri.request_uri) }
+    return JSON.parse(res.body) if res.is_a?(Net::HTTPSuccess)
+    warn "GET #{uri.host} -> #{res.code} (try #{i + 1})"
+    sleep 5
+  rescue StandardError => e
+    warn "GET failed: #{e.message} (try #{i + 1})"
+    sleep 5
+  end
+  nil
+end
+
+def write_json(name, obj)
+  Dir.mkdir(DATA_DIR) unless Dir.exist?(DATA_DIR)
+  path = File.join(DATA_DIR, name)
+  File.write(path, JSON.generate(obj))
+  puts "wrote #{name} (#{File.size(path)} bytes)"
+end
+
+# ---------------- forecast ----------------
+def update_forecast
+  lat = BEACHES.map { |b| b[1] }.join(",")
+  lon = BEACHES.map { |b| b[2] }.join(",")
+  tz = "Asia%2FJerusalem"
+  marine = get_json("https://marine-api.open-meteo.com/v1/marine?latitude=#{lat}&longitude=#{lon}&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,sea_surface_temperature&forecast_days=5&timezone=#{tz}")
+  wind = get_json("https://api.open-meteo.com/v1/forecast?latitude=#{lat}&longitude=#{lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&daily=sunrise,sunset&forecast_days=5&timezone=#{tz}")
+  unless marine.is_a?(Array) && wind.is_a?(Array) && marine.size == BEACHES.size && wind.size == BEACHES.size
+    warn "forecast fetch failed – keeping previous data.json"
+    return false
+  end
+  write_json("data.json", { "updated" => Time.now.iso8601, "marine" => marine, "wind" => wind })
+  true
+end
+
+# ---------------- scoring (same rules as the page) ----------------
+def height_score(h)
+  return 0 if h.nil? || h < 0.3
+  return (h - 0.3) / 0.3 * 3.5 if h < 0.6
+  return 3.5 + (h - 0.6) / 0.4 * 3 if h < 1
+  return 6.5 + [1, (h - 1) / 0.8].min * 2 if h <= 2.2
+  [3, 8.5 - (h - 2.2) * 2.2].max
+end
+
+def wind_type(dir, spd)
+  on = Math.cos((dir.to_f - 270) * Math::PI / 180)
+  return [on, "כמעט בלי רוח"] if spd.to_f < 8
+  [on, on > 0.5 ? "רוח מהים" : on < -0.4 ? "רוח מהיבשה" : "רוח צד"]
+end
+
+def hour_score(h, t, spd, dir)
+  return nil if h.nil?
+  s = height_score(h) + [[(t.to_f - 4) / 5, 0].max, 1].min * 2
+  on, = wind_type(dir, spd)
+  spd = spd.to_f
+  s += on.positive? ? -[4, (spd / 28) * 3.5 * on].min : [1, -on * (spd < 25 ? 1 : 0.3)].min
+  s -= 1.5 if spd > 35
+  s = [s, 1].min if h < 0.3
+  s.clamp(0, 10)
+end
+
+def forecast_context
+  d = JSON.parse(File.read(File.join(DATA_DIR, "data.json")))
+  times = d["marine"][0]["hourly"]["time"]
+  now_s = Time.now.strftime("%Y-%m-%dT%H:00")
+  now_i = times.index(now_s) || [times.count { |t| t < now_s } - 1, 0].max
+  today = Time.now.strftime("%Y-%m-%d")
+  tomorrow = (Time.now + 86_400).strftime("%Y-%m-%d")
+  lines = BEACHES.each_with_index.map do |(name), k|
+    m = d["marine"][k]["hourly"]; w = d["wind"][k]["hourly"]; dl = d["wind"][k]["daily"]
+    row = lambda do |i|
+      h = [m["wave_height"][i], m["swell_wave_height"][i]].compact.max
+      t = [m["wave_period"][i], m["swell_wave_period"][i]].compact.max
+      sc = hour_score(h, t, w["wind_speed_10m"][i], w["wind_direction_10m"][i])
+      _, wt = wind_type(w["wind_direction_10m"][i], w["wind_speed_10m"][i])
+      { i: i, s: sc, txt: "ציון #{sc ? sc.round(1) : '-'}, גל #{h ? h.round(1) : '-'}מ, מחזור #{t ? t.round : '-'}ש, #{wt} #{w['wind_speed_10m'][i].to_f.round}קמ\"ש" }
+    end
+    best = lambda do |date, from|
+      di = dl["time"].index(date)
+      next nil unless di
+      sr = dl["sunrise"][di][0, 13]; ss = dl["sunset"][di]
+      idx = times.each_index.select { |i| times[i].start_with?(date) && times[i] >= sr && times[i] <= ss && i >= from }
+      idx.map { |i| row.call(i) }.max_by { |r| r[:s] || -1 }
+    end
+    parts = ["עכשיו: #{row.call(now_i)[:txt]}"]
+    [[today, "היום", now_i], [tomorrow, "מחר", 0]].each do |date, label, from|
+      b = best.call(date, from)
+      parts << "#{label} שיא ב-#{times[b[:i]][11, 5]}: #{b[:txt]}" if b
+    end
+    "#{name}: #{parts.join(' | ')}"
+  end
+  [lines.join("\n"), times[now_i][11, 5]]
+end
+
+# ---------------- Gemini ----------------
+MODELS = [ENV["GEMINI_MODEL"], "gemini-2.5-flash", "gemini-flash-latest"].compact.reject(&:empty?).uniq
+
+def gemini(prompt, search: false)
+  key = ENV["GEMINI_API_KEY"].to_s
+  raise "GEMINI_API_KEY is missing" if key.empty?
+  body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4 } }
+  body[:tools] = [{ google_search: {} }] if search
+  MODELS.each do |model|
+    uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{model}:generateContent")
+    req = Net::HTTP::Post.new(uri, "Content-Type" => "application/json", "x-goog-api-key" => key)
+    req.body = JSON.generate(body)
+    res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: 180) { |h| h.request(req) }
+    if res.is_a?(Net::HTTPSuccess)
+      j = JSON.parse(res.body)
+      cand = (j["candidates"] || [])[0] || {}
+      text = (cand.dig("content", "parts") || []).map { |p| p["text"] }.compact.join
+      chunks = (cand.dig("groundingMetadata", "groundingChunks") || []).map { |c| c["web"] }.compact
+      puts "gemini #{model}: #{text.size} chars, #{chunks.size} sources"
+      return [text, chunks]
+    end
+    warn "gemini #{model} -> #{res.code}: #{res.body[0, 300]}"
+    next if %w[404 400].include?(res.code)
+    raise "Gemini error #{res.code}"
+  end
+  raise "no Gemini model worked"
+end
+
+def extract_json(text)
+  a = text.index("{"); b = text.rindex("}")
+  return nil unless a && b && b > a
+  JSON.parse(text[a..b])
+rescue JSON::ParserError
+  nil
+end
+
+BEACH_INDEX_TEXT = BEACHES.each_with_index.map { |(n), i| "#{i} #{n}" }.join(", ")
+
+def update_people
+  now = Time.now
+  prompt = <<~P
+    עכשיו #{now.strftime('%Y-%m-%d %H:%M')} שעון ישראל.
+    חפש בגוגל דיווחים של גולשים אמיתיים על מצב הים והגלים בחופי הים התיכון בישראל מ-24 השעות האחרונות.
+    רק דברים שאנשים כתבו או צילמו בעצמם: פוסטים פתוחים באינסטגרם, פייסבוק, טיקטוק, X, סרטונים ביוטיוב שהועלו היום או אתמול, רדיט, דיווחי "eyeball" ב-surf-forecast, דיווחים יומיים שכתבו בתי ספר או חנויות גלישה, פורומים, וכתבות חדשות על מצב הים היום.
+    אל תכלול מספרים אוטומטיים מאתרי תחזית. אל תמציא. אם אין תאריך או שהוא ישן מ-24 שעות, אל תכלול. רשימה ריקה היא תשובה תקינה.
+    התאם כל דיווח לאינדקס חוף (או null): #{BEACH_INDEX_TEXT}. כל חופי תל אביב = 10.
+    החזר JSON בלבד, בלי טקסט נוסף, במבנה:
+    {"reports":[{"beach":<מספר או null>,"spot":"<שם המקום אם beach הוא null>","source":"<אינסטגרם|פייסבוק|יוטיוב|טיקטוק|X|רדיט|Surf-forecast|בית ספר לגלישה|פורום|חדשות>","when":"<זמן הפרסום ISO 8601 עם אזור זמן>","text":"<משפט או שניים בעברית, במילים שלך, מה האדם אמר או הראה>","size":"<גודל הגל כמו שתיארו, למשל מותן-חזה, או ריק>","rating":<1-5 כמה טוב זה היה לדבריהם, או null>,"url":"<קישור ישיר לפוסט>"}],
+     "sources_checked":["<סוגי המקורות שחיפשת, בעברית קצרה>"]}
+    עד 12 דיווחים, החדשים קודם.
+  P
+  text, chunks = gemini(prompt, search: true)
+  j = extract_json(text) || {}
+  cutoff = now - 30 * 3600
+  reports = (j["reports"] || []).filter_map do |r|
+    next unless r.is_a?(Hash) && r["text"].to_s.strip != ""
+    t = (Time.parse(r["when"].to_s) rescue nil)
+    next unless t && t > cutoff && t < now + 3600
+    beach = r["beach"].is_a?(Integer) && r["beach"].between?(0, BEACHES.size - 1) ? r["beach"] : nil
+    url = r["url"].to_s
+    url = "" unless url.start_with?("http")
+    {
+      "beach" => beach, "spot" => r["spot"].to_s[0, 60], "source" => r["source"].to_s[0, 30], "when" => t.iso8601,
+      "text" => r["text"].to_s[0, 300], "size" => r["size"].to_s[0, 30],
+      "rating" => (r["rating"].is_a?(Numeric) ? r["rating"].clamp(1, 5) : nil), "url" => url
+    }
+  end.first(12)
+  sources = (j["sources_checked"] || []).map(&:to_s).reject(&:empty?).first(8)
+  sources = ["אינסטגרם", "פייסבוק", "יוטיוב", "טיקטוק", "רדיט", "אתרי גלישה", "חדשות"] if sources.empty?
+  note = reports.empty? ? "בסריקה האחרונה לא נמצאו דיווחים של גולשים מה-24 שעות האחרונות. רוב הפוסטים של גולשים יושבים בקבוצות פייסבוק, וואטסאפ ואינסטגרם סגורות." : ""
+  write_json("reports.json", { "scanned" => now.iso8601, "sources_checked" => sources, "reports" => reports, "note" => note, "web_sources" => chunks.size })
+
+  ctx, now_hm = forecast_context
+  people = reports.empty? ? "אין דיווחי גולשים עדכניים." : reports.map { |r| "#{r['beach'] ? BEACHES[r['beach']][0] : r['spot']} (#{r['source']}): #{r['text']}#{r['rating'] ? " [דירוג #{r['rating']}/5]" : ''}" }.join("\n")
+  sprompt = <<~P
+    אתה גולש ותיק בישראל שכותב לחבר סיכום קצר על מצב הגלים עכשיו ובשעות הקרובות (וגם מחר).
+    עברית מדוברת וטבעית, 3–4 משפטים, בלי כותרות, בלי רשימות ובלי אימוג'י.
+    ציין את החוף או שניים הכי טובים, את השעה הכי שווה, איזה גלשן מתאים (שורט/לונג/פאן), ואזור שכדאי לוותר עליו.
+    אם יש דיווחי גולשים, שלב אותם ואמור אם הם מאשרים או סותרים את התחזית. אם אין, אל תמציא.
+    ציון 0–10 = חישוב אוטומטי (גל, מחזור, רוח). רוח מהיבשה = טוב, רוח מהים = מבולגן.
+    תחזית (שעון ישראל, עכשיו #{now_hm}):
+    #{ctx}
+    דיווחי גולשים מהרשת:
+    #{people}
+  P
+  stext, = gemini(sprompt, search: false)
+  stext = stext.strip
+  write_json("summary.json", { "created" => Time.now.iso8601, "text" => stext }) unless stext.empty?
+end
+
+ok = true
+ok &&= update_forecast if %w[forecast all].include?(MODE)
+if %w[people all].include?(MODE)
+  if ENV["GEMINI_API_KEY"].to_s.empty?
+    warn "GEMINI_API_KEY not set – skipping surfer reports and AI summary"
+  else
+    begin
+      update_people
+    rescue StandardError => e
+      warn "people/summary step failed: #{e.message}"
+    end
+  end
+end
+exit(ok ? 0 : 1)
