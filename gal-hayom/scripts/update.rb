@@ -198,7 +198,7 @@ def update_people
      "sources_checked":["<סוגי המקורות שחיפשת, בעברית קצרה>"]}
     עד 12 דיווחים, החדשים קודם.
   P
-  text, chunks = gemini(prompt, search: true)
+  text, chunks = (gemini(prompt, search: true) rescue ["", []])
   j = extract_json(text) || {}
   cutoff = now - 30 * 3600
   reports = (j["reports"] || []).filter_map do |r|
