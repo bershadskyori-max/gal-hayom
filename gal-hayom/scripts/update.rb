@@ -163,7 +163,7 @@ puts "gemini #{model}: #{text.size} chars, #{chunks.size} sources"
 return [text, chunks]
 end
 warn "gemini #{model} -> #{res.code}: #{res.body[0, 300]}"
-next if %w[404 400 429].include?(res.code)
+next if %w[404 400 429 500 503].include?(res.code)
 raise "Gemini error #{res.code}"
 end
 raise "no Gemini model worked"
