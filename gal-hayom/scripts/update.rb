@@ -288,9 +288,16 @@ stext = stext.strip
 write_json("summary.json", { "created" => Time.now.iso8601, "text" => stext }) unless stext.empty?
 end
 
+def people_due?
+return false unless (5..21).cover?(Time.now.hour)
+s = (JSON.parse(File.read(File.join(DATA_DIR, "summary.json"))) rescue nil)
+t = (Time.parse(s["created"].to_s) rescue nil) if s
+t.nil? || Time.now - t > 6 * 3600
+end
+
 ok = true
-ok &&= update_forecast if %w[forecast all].include?(MODE)
-if %w[people all].include?(MODE)
+ok &&= update_forecast if %w[forecast all auto].include?(MODE)
+if %w[people all].include?(MODE) || (MODE == "auto" && people_due?)
 if ENV["GEMINI_API_KEY"].to_s.empty?
 warn "GEMINI_API_KEY not set - skipping surfer reports and AI summary"
 else
