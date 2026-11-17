@@ -413,6 +413,7 @@ body{padding-bottom:96px}
     <h3 id="repTitle">איך היה במים?</h3>
     <div><label for="repBeach">באיזה חוף</label><select id="repBeach" required></select></div>
     <div><span class="q" id="repRateQ">איך הגלים</span><div class="rates" id="repRates" role="group" aria-labelledby="repRateQ"></div></div>
+    <div><span class="q" id="repBoardQ">עם איזה גלשן יצאת</span><div class="chips" id="repBoards" role="group" aria-labelledby="repBoardQ"></div></div>
     <div><span class="q" id="repSizeQ">גובה (לא חובה)</span><div class="chips" id="repSizes" role="group" aria-labelledby="repSizeQ"></div></div>
     <div><label for="repText">משפט אחד (לא חובה)</label><textarea id="repText" maxlength="200" placeholder="למשל: נקי ועקבי, קצת זרם בצפון"></textarea></div>
     <div class="row2"><span class="msg" id="repMsg" role="status"></span><button type="button" class="ghost press" id="repCancel">ביטול</button><button type="submit" class="btn-primary press" id="repSend">שליחה</button></div>
@@ -781,7 +782,7 @@ function reportHTML(r,k){
     <div class="report-top"><b>${esc(b?b.n:(r.spot||"חוף לא ידוע"))}</b><span class="src">${esc(r.source||"רשת")}</span></div>
     <p>${esc(r.text||"")}</p>
     ${vs}
-    <div class="foot"><span class="num">${esc(r.size||"")}${r.size&&r.when?" · ":""}${r.when?ago(r.when):""}</span>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">למקור</a>`:""}</div>
+    <div class="foot"><span class="num">${[r.board?`על ${esc(r.board)}`:"",esc(r.size||""),r.when?ago(r.when):""].filter(Boolean).join(" · ")}</span>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">למקור</a>`:""}</div>
   </article>`;
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -862,18 +863,22 @@ async function loadUserReports(){
     const r=await fetch(`${SB.u}/rest/v1/reports?select=*&created_at=gte.${since}&order=created_at.desc&limit=80`,{headers:sbHead()}); if(!r.ok) return;
     const rows=await r.json();
     USER_REPORTS=rows.map(x=>{ let bi=BEACHES.findIndex(b=>b.n===x.beach_name); if(bi<0) bi=Number.isInteger(x.beach)&&BEACHES[x.beach]?x.beach:null;
-      return {beach:bi,spot:x.beach_name||"",source:"גולש באפליקציה",when:x.created_at,text:x.text||"",size:x.size||"",rating:x.rating,url:""}; });
+      return {beach:bi,spot:x.beach_name||"",source:"גולש באפליקציה",when:x.created_at,text:x.text||"",size:x.size||"",board:x.board||"",rating:x.rating,url:""}; });
     renderPeople();
   }catch(e){}
 }
 const RATES=[["1","שטוח"],["2","חלש"],["3","בסדר"],["4","טוב"],["5","אפי"]];
 const SIZES=["עד הברך","מותן","חזה","ראש","מעל הראש"];
-let repRate=null, repSize="";
+const BOARDS=["שורט","פאן","לונג","סופט","בודיבורד","סאפ"];
+const PROF_BOARD={beg:"סופט",long:"לונג",fun:"פאן",short:"שורט"};
+let repRate=null, repSize="", repBoard="";
 function openReport(beachIdx){
   const last=store.get("lastReport",0); const dlg=$("repDlg");
   const sel=$("repBeach"); const def=beachIdx!=null?beachIdx:([...favs][0]??(beaches.length?ranked()[0].b.idx:0));
   sel.innerHTML=BEACHES.map((b,k)=>`<option value="${k}"${k===def?" selected":""}>${esc(b.n)}</option>`).join("");
-  repRate=null; repSize=""; $("repText").value=""; $("repMsg").textContent=""; $("repSend").disabled=false;
+  repRate=null; repSize=""; repBoard=store.get("lastBoard",PROF_BOARD[PROF]||""); $("repText").value="";
+  $("repBoards").innerHTML=BOARDS.map(z=>`<button type="button" class="chipbtn" aria-pressed="${z===repBoard}" data-z="${z}">${z}</button>`).join("");
+  $("repBoards").querySelectorAll("button").forEach(b=>b.onclick=()=>{repBoard=repBoard===b.dataset.z?"":b.dataset.z; $("repBoards").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.z===repBoard)));}); $("repMsg").textContent=""; $("repSend").disabled=false;
   $("repRates").innerHTML=RATES.map(([v,l])=>`<button type="button" aria-pressed="false" data-v="${v}"><span>${v}</span>${l}</button>`).join("");
   $("repSizes").innerHTML=SIZES.map(z=>`<button type="button" class="chipbtn" aria-pressed="false" data-z="${z}">${z}</button>`).join("");
   $("repRates").querySelectorAll("button").forEach(b=>b.onclick=()=>{repRate=+b.dataset.v; $("repRates").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));});
@@ -898,9 +903,9 @@ $("repForm").addEventListener("submit",async e=>{
   const k=+$("repBeach").value; $("repSend").disabled=true; $("repMsg").textContent="שולח…";
   try{
     const r=await fetch(`${SB.u}/rest/v1/reports`,{method:"POST",headers:{...sbHead(),"Content-Type":"application/json",Prefer:"return=minimal"},
-      body:JSON.stringify({beach:k,beach_name:BEACHES[k].n,rating:repRate,size:repSize,text:$("repText").value.trim().slice(0,200)})});
+      body:JSON.stringify({beach:k,beach_name:BEACHES[k].n,rating:repRate,size:repSize,board:repBoard,text:$("repText").value.trim().slice(0,200)})});
     if(!r.ok) throw new Error(r.status);
-    store.set("lastReport",Date.now()); $("repDlg").close(); toast("תודה! הדיווח שלך עלה לכולם"); loadUserReports();
+    store.set("lastReport",Date.now()); if(repBoard) store.set("lastBoard",repBoard); $("repDlg").close(); toast("תודה! הדיווח שלך עלה לכולם"); loadUserReports();
   }catch(err){ $("repMsg").innerHTML='<span class="err">לא הצלחתי לשלוח. נסה שוב.</span>'; $("repSend").disabled=false; }
 });
 function toast(t){ const d=document.createElement("div"); d.className="toast"; d.setAttribute("role","status"); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),3200); }
