@@ -626,7 +626,7 @@ function chartSVG(b){
   let strip=""; const bw=(W-pl-pr)/n; b.scores.forEach((s,i)=>{strip+=`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${H-pb+6}" width="${(bw+.4).toFixed(1)}" height="8" rx="1" fill="${s==null?ln:scoreColor(s)}"/>`;});
   let days=""; b.dates.forEach((dt,k)=>{const i0=b.times.indexOf(dt+"T00:00"); if(i0<0)return; days+=`<text x="${x(Math.min(n-1,i0+12))}" y="${H-6}" font-size="12" font-weight="700" fill="${mu}" text-anchor="middle">${dayLabel(dt,k)}</text>`;});
   const nx=x(DATA.nowI);
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="תחזית גובה גלים ל-5 ימים">
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="תחזית גובה גלים לשבוע">
    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ac}" stop-opacity=".55"/><stop offset="1" stop-color="${ac2}" stop-opacity="0"/></linearGradient></defs>
    ${night}${grid}<path d="${area}" fill="url(#ga)"/><path d="${d}" fill="none" stroke="${ac}" stroke-width="2.4" stroke-linejoin="round"/>
    ${strip}${days}<line x1="${nx}" x2="${nx}" y1="${pt}" y2="${H-pb}" stroke="${sun}" stroke-width="2" stroke-dasharray="3 3"/>

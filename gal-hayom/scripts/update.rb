@@ -1,6 +1,6 @@
 # Gal Hayom update robot.
 # Usage: ruby scripts/update.rb [forecast|people|all]
-# forecast - 5-day marine + wind forecast (no AI) -> data/data.json
+# forecast - 8-day marine + wind forecast (no AI) -> data/data.json
 # people - surfer reports (YouTube + Gemini) -> data/reports.json, and AI summary -> data/summary.json
 # Needs GEMINI_API_KEY for "people". YOUTUBE_API_KEY and GEMINI_MODEL are optional.
 require "net/http"
@@ -79,8 +79,8 @@ def update_forecast
 lat = BEACHES.map { |b| b[1] }.join(",")
 lon = BEACHES.map { |b| b[2] }.join(",")
 tz = "Asia%2FJerusalem"
-marine = get_json("https://marine-api.open-meteo.com/v1/marine?latitude=#{lat}&longitude=#{lon}&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature&forecast_days=5&timezone=#{tz}")
-wind = get_json("https://api.open-meteo.com/v1/forecast?latitude=#{lat}&longitude=#{lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&daily=sunrise,sunset&forecast_days=5&timezone=#{tz}")
+marine = get_json("https://marine-api.open-meteo.com/v1/marine?latitude=#{lat}&longitude=#{lon}&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature&forecast_days=8&timezone=#{tz}")
+wind = get_json("https://api.open-meteo.com/v1/forecast?latitude=#{lat}&longitude=#{lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&daily=sunrise,sunset&forecast_days=8&timezone=#{tz}")
 unless marine.is_a?(Array) && wind.is_a?(Array) && marine.size == BEACHES.size && wind.size == BEACHES.size
 warn "forecast fetch failed - keeping previous data.json"
 return false
