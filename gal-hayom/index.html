@@ -302,6 +302,17 @@ dialog.rep[open]{animation:repIn .35s cubic-bezier(.2,.9,.25,1)}
 .rep .msg{font-size:14px;font-weight:700;margin-inline-end:auto}
 .toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));inset-inline:0;margin:0 auto;width:max-content;max-width:90%;z-index:60;padding:12px 18px;border-radius:99px;
   background:var(--glass-strong);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:repIn .3s ease-out}
+/* new surfer reports: the tab hops and the badge pulses until you open it */
+#tabP.nudge{animation:tabHop 5s ease-in-out .6s infinite}
+#tabP.nudge svg{animation:tabWave 5s ease-in-out .6s infinite;transform-origin:50% 80%}
+@keyframes tabHop{0%,80%,100%{transform:translateY(0)}84%{transform:translateY(-7px) scale(1.04)}88%{transform:translateY(0) scale(.98)}91%{transform:translateY(-3px)}94%{transform:translateY(0)}}
+@keyframes tabWave{0%,80%,100%{transform:none}84%{transform:rotate(-12deg)}88%{transform:rotate(10deg)}92%{transform:none}}
+#tabP .count{transition:transform .3s cubic-bezier(.3,1.6,.5,1),opacity .25s}
+#tabP.nudge .count{animation:badgePop .5s cubic-bezier(.3,1.6,.5,1),badgeGlow 2s ease-out .5s infinite}
+@keyframes badgePop{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes badgeGlow{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--sun) 70%,transparent)}100%{box-shadow:0 0 0 9px transparent}}
+#tabP .count.gone{transform:scale(0);opacity:0}
+@media (prefers-reduced-motion:reduce){#tabP.nudge,#tabP.nudge svg,#tabP.nudge .count{animation:none}}
 /* floating report button: pops in once, then a small hop every few seconds (stops after the first tap) */
 .fab{position:fixed;z-index:35;bottom:calc(18px + env(safe-area-inset-bottom,0px));inset-inline-start:max(16px,calc(50% - 304px));
   border:0;border-radius:99px;padding:0 20px 0 16px;min-height:54px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;
@@ -767,6 +778,7 @@ function setView(v,instant){
   hide.hidden=true; show.hidden=false; show.classList.remove("enter","from-left"); void show.offsetWidth;
   if(!instant){ show.classList.add("enter"); if(v==="F") show.classList.add("from-left"); }
   store.set("view",v);
+  if(v==="P") markSeen();
 }
 $("tabF").onclick=()=>setView("F"); $("tabP").onclick=()=>setView("P");
 [$("tabF"),$("tabP")].forEach(t=>t.addEventListener("keydown",e=>{ if(e.key==="ArrowLeft"||e.key==="ArrowRight"){ e.preventDefault(); const nv=view==="F"?"P":"F"; setView(nv); $(nv==="F"?"tabF":"tabP").focus(); }}));
@@ -789,7 +801,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 function renderPeople(){
   const rs=allReports().slice().sort((a,b)=>parseTS(b.when)-parseTS(a.when));
   $("reportWrap").hidden=false;
-  $("pCount").hidden=!rs.length; $("pCount").textContent=rs.length;
+  updateUnseen(rs);
   $("scanTag").textContent=REPORTS?`ה-AI סרק את הרשת ${ago(REPORTS.scanned)}${USER_REPORTS.length?` · ${USER_REPORTS.length} דיווחים של גולשים באפליקציה`:""} · ${rs.length} דיווחים בסך הכול`:"עוד לא בוצעה סריקה";
   $("reports").innerHTML= rs.length? rs.map((r,k)=>reportHTML(r,k)).join("") :
    `<div class="empty glass">${ICON.chat}<h3>אין דיווחים חדשים מגולשים</h3><p>${esc(REPORTS&&REPORTS.note||"ה-AI יחפש דיווחים בסריקה הבאה.")}</p><p>${SB?"היית היום במים? הדיווח שלך יעזור לכל מי שבודק אחריך.":"בינתיים אפשר להציץ במצלמות ולראות בעצמך."}</p></div>`;
@@ -856,6 +868,18 @@ const CFG=window.GAL_CONFIG||{};
 const SB=CFG.supabaseUrl&&CFG.supabaseKey?{u:String(CFG.supabaseUrl).replace(/\/$/,""),k:CFG.supabaseKey}:null;
 /* new-style publishable keys (sb_publishable_…) go only in the apikey header; old JWT anon keys also need Authorization */
 const sbHead=()=>SB.k.startsWith("sb_")?{apikey:SB.k}:{apikey:SB.k,Authorization:`Bearer ${SB.k}`};
+/* unseen = reports newer than the newest one you already looked at */
+const repTs=r=>{ const t=parseTS(r.when).getTime(); return isNaN(t)?0:t; };
+function updateUnseen(rs){
+  rs=rs||allReports(); const seen=store.get("seenReports",0), b=$("pCount"), tab=$("tabP");
+  const n=rs.filter(r=>repTs(r)>seen).length;
+  if(view==="P"&&n){ markSeen(rs); return; }
+  if(n){ b.classList.remove("gone"); b.hidden=false; b.textContent=n; tab.classList.add("nudge"); tab.setAttribute("aria-label",`לפי גולשים, ${n} דיווחים חדשים`); }
+  else { tab.classList.remove("nudge"); tab.removeAttribute("aria-label"); if(!b.hidden){ b.classList.add("gone"); setTimeout(()=>{ if(b.classList.contains("gone")) b.hidden=true; },300); } }
+}
+function markSeen(rs){ rs=rs||allReports(); const mx=Math.max(store.get("seenReports",0),...rs.map(repTs),0); store.set("seenReports",mx); updateUnseen(rs); }
+setInterval(()=>{ if(!document.hidden) loadUserReports(); },120e3);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) loadUserReports(); });
 const allReports=()=>[...USER_REPORTS,...((REPORTS&&REPORTS.reports)||[])];
 async function loadUserReports(){
   if(!SB) return;
@@ -905,7 +929,7 @@ $("repForm").addEventListener("submit",async e=>{
     const r=await fetch(`${SB.u}/rest/v1/reports`,{method:"POST",headers:{...sbHead(),"Content-Type":"application/json",Prefer:"return=minimal"},
       body:JSON.stringify({beach:k,beach_name:BEACHES[k].n,rating:repRate,size:repSize,board:repBoard,text:$("repText").value.trim().slice(0,200)})});
     if(!r.ok) throw new Error(r.status);
-    store.set("lastReport",Date.now()); if(repBoard) store.set("lastBoard",repBoard); $("repDlg").close(); toast("תודה! הדיווח שלך עלה לכולם"); loadUserReports();
+    store.set("lastReport",Date.now()); if(repBoard) store.set("lastBoard",repBoard); $("repDlg").close(); toast("תודה! הדיווח שלך עלה לכולם"); store.set("seenReports",Math.max(store.get("seenReports",0),Date.now()+5000)); loadUserReports();
   }catch(err){ $("repMsg").innerHTML='<span class="err">לא הצלחתי לשלוח. נסה שוב.</span>'; $("repSend").disabled=false; }
 });
 function toast(t){ const d=document.createElement("div"); d.className="toast"; d.setAttribute("role","status"); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),3200); }
