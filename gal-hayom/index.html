@@ -302,6 +302,22 @@ dialog.rep[open]{animation:repIn .35s cubic-bezier(.2,.9,.25,1)}
 .rep .msg{font-size:14px;font-weight:700;margin-inline-end:auto}
 .toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));inset-inline:0;margin:0 auto;width:max-content;max-width:90%;z-index:60;padding:12px 18px;border-radius:99px;
   background:var(--glass-strong);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:repIn .3s ease-out}
+/* floating report button: pops in once, then a small hop every few seconds (stops after the first tap) */
+.fab{position:fixed;z-index:35;bottom:calc(18px + env(safe-area-inset-bottom,0px));inset-inline-start:max(16px,calc(50% - 304px));
+  border:0;border-radius:99px;padding:0 20px 0 16px;min-height:54px;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;
+  background:linear-gradient(135deg,var(--sun),var(--sun-2));color:#2b0f00;box-shadow:0 10px 30px color-mix(in srgb,var(--sun) 45%,transparent),0 2px 6px rgba(0,0,0,.2);
+  transform:scale(0);animation:fabIn .6s cubic-bezier(.3,1.6,.5,1) 1.2s forwards}
+.fab svg{width:22px;height:22px}
+.fab .ic{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.35)}
+.fab.hop{animation:fabIn .6s cubic-bezier(.3,1.6,.5,1) 1.2s forwards,fabHop 9s ease-in-out 4s infinite}
+.fab:active{transform:scale(.94)!important}
+.fab.away{transform:translateY(140%)!important;transition:transform .3s ease-in;animation:none}
+@keyframes fabIn{from{transform:scale(0) rotate(-12deg)}to{transform:scale(1)}}
+@keyframes fabHop{0%,86%,100%{transform:translateY(0) scale(1)}89%{transform:translateY(-12px) scale(1.06) rotate(-3deg)}92%{transform:translateY(0) scale(.97)}94.5%{transform:translateY(-4px) scale(1.02) rotate(2deg)}97%{transform:translateY(0) scale(1)}}
+.fab .ic svg{animation:fabWave 9s ease-in-out 4s infinite}
+@keyframes fabWave{0%,86%,100%{transform:none}90%{transform:translateX(-2px) rotate(-10deg)}94%{transform:translateX(2px) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.fab,.fab.hop{animation:none;transform:none}.fab .ic svg{animation:none}}
+body{padding-bottom:96px}
 .aisum{border-radius:14px;padding:11px 13px;background:color-mix(in srgb,var(--accent-2) 12%,transparent);border:1px solid var(--line);font-size:15.5px;line-height:1.6}
 .aisum small{display:block;font-size:12px;font-weight:800;color:var(--accent);margin-bottom:2px}
 
@@ -391,6 +407,7 @@ dialog.rep[open]{animation:repIn .35s cubic-bezier(.2,.9,.25,1)}
   <p class="foot-note">התחזית: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>, מתעדכנת כל 3 שעות. הציון מחושב לפי גובה גל, מחזור, רוח, הכיוון שהחוף פונה אליו והגלשן שבחרת. דיווחי הגולשים והסיכום נכתבים על ידי AI (Gemini) פעמיים ביום. תמיד לבדוק בעיניים לפני שנכנסים למים.</p>
 </div>
 
+<button class="fab hop" id="fab" type="button" aria-label="דיווח: הייתי במים"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 19.5c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M12 3v7M8.5 6.5 12 10l3.5-3.5"/></svg></span>הייתי במים</button>
 <dialog class="rep" id="repDlg" aria-labelledby="repTitle">
   <form id="repForm" method="dialog">
     <h3 id="repTitle">איך היה במים?</h3>
@@ -705,7 +722,7 @@ function openSheet(b,i,src){
    <p class="sub-h">${windWord(w.type)} · משבים עד ${fmt(b.gust[i],0)} קמ״ש${sd!=null?` · הסוול מ${compass(sd)}, החוף פונה ל${compass(b.f)}${ex<0.6?" (מגיע חלש)":""}`:""}</p>
    <p class="sub-h">מה גולשים אמרו על החוף</p>
    ${rep.length?rep.map((r,k)=>reportHTML(r,k)).join(""):`<p class="none">אין דיווחים מהיממה האחרונה.</p>`}
-   ${SB?`<div><button class="btn-report press" type="button" data-report="${b.idx}">${ICON.chat}דווח על החוף הזה</button></div>`:""}
+   <div><button class="btn-report press" type="button" data-report="${b.idx}">${ICON.chat}דווח על החוף הזה</button></div>
    <p class="sub-h">מצלמה חיה</p>
    ${(b.cams||[]).length?`<div class="links">${b.cams.map(c=>`<a class="cam-link" href="${esc(c.u)}" target="_blank" rel="noopener">${ICON.cam}${esc(c.n)}</a>`).join("")}</div>`:`<p class="none">אין מצלמה חיה בחוף הזה.</p>`}
    <p class="sub-h">סרטונים מהיומיים האחרונים</p>
@@ -770,7 +787,7 @@ function reportHTML(r,k){
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function renderPeople(){
   const rs=allReports().slice().sort((a,b)=>parseTS(b.when)-parseTS(a.when));
-  $("reportWrap").hidden=!SB;
+  $("reportWrap").hidden=false;
   $("pCount").hidden=!rs.length; $("pCount").textContent=rs.length;
   $("scanTag").textContent=REPORTS?`ה-AI סרק את הרשת ${ago(REPORTS.scanned)}${USER_REPORTS.length?` · ${USER_REPORTS.length} דיווחים של גולשים באפליקציה`:""} · ${rs.length} דיווחים בסך הכול`:"עוד לא בוצעה סריקה";
   $("reports").innerHTML= rs.length? rs.map((r,k)=>reportHTML(r,k)).join("") :
@@ -860,11 +877,18 @@ function openReport(beachIdx){
   $("repSizes").innerHTML=SIZES.map(z=>`<button type="button" class="chipbtn" aria-pressed="false" data-z="${z}">${z}</button>`).join("");
   $("repRates").querySelectorAll("button").forEach(b=>b.onclick=()=>{repRate=+b.dataset.v; $("repRates").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));});
   $("repSizes").querySelectorAll("button").forEach(b=>b.onclick=()=>{repSize=repSize===b.dataset.z?"":b.dataset.z; $("repSizes").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.z===repSize)));});
-  if(Date.now()-last<15*60e3) $("repMsg").textContent="כבר דיווחת לפני רגע. אפשר שוב בעוד כמה דקות.";
+  if(!SB){ $("repMsg").textContent="שליחת דיווחים נפתחת ממש בקרוב."; $("repSend").disabled=true; }
+  else if(Date.now()-last<15*60e3) $("repMsg").textContent="כבר דיווחת לפני רגע. אפשר שוב בעוד כמה דקות.";
   if(sheetOpen) closeSheet();
   dlg.showModal();
 }
 $("reportBtn").onclick=()=>openReport(null);
+{ const fab=$("fab"); if(store.get("fabTapped",false)) fab.classList.remove("hop");
+  fab.onclick=()=>{ fab.classList.remove("hop"); store.set("fabTapped",true); openReport(null); };
+  /* step aside while a beach sheet or the report form is open */
+  const upd=()=>fab.classList.toggle("away",scrim.classList.contains("on")||$("repDlg").open);
+  new MutationObserver(upd).observe(scrim,{attributes:true,attributeFilter:["class"]});
+  new MutationObserver(upd).observe($("repDlg"),{attributes:true,attributeFilter:["open"]}); }
 $("repCancel").onclick=()=>$("repDlg").close();
 $("repForm").addEventListener("submit",async e=>{
   e.preventDefault(); if(!SB) return;
