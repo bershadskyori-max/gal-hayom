@@ -853,7 +853,8 @@ if(DATA&&Array.isArray(DATA.beaches)&&DATA.beaches.length===DATA.marine.length) 
 /* ================= surfer reports from the app (Supabase, optional: set in config.js) ================= */
 const CFG=window.GAL_CONFIG||{};
 const SB=CFG.supabaseUrl&&CFG.supabaseKey?{u:String(CFG.supabaseUrl).replace(/\/$/,""),k:CFG.supabaseKey}:null;
-const sbHead=()=>({apikey:SB.k,Authorization:`Bearer ${SB.k}`});
+/* new-style publishable keys (sb_publishable_…) go only in the apikey header; old JWT anon keys also need Authorization */
+const sbHead=()=>SB.k.startsWith("sb_")?{apikey:SB.k}:{apikey:SB.k,Authorization:`Bearer ${SB.k}`};
 const allReports=()=>[...USER_REPORTS,...((REPORTS&&REPORTS.reports)||[])];
 async function loadUserReports(){
   if(!SB) return;
