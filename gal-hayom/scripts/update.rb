@@ -166,9 +166,15 @@ body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConf
 body[:tools] = [{ google_search: {} }] if search
 MODELS.each do |model|
 uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{model}:generateContent")
+res = nil
+2.times do |attempt|
 req = Net::HTTP::Post.new(uri, "Content-Type" => "application/json", "x-goog-api-key" => key)
 req.body = JSON.generate(body)
 res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: 180) { |h| h.request(req) }
+break unless %w[429 503].include?(res.code) && attempt.zero?
+warn "gemini #{model} -> #{res.code}, waiting and retrying once"
+sleep(res.code == "429" ? 35 : 12)
+end
 if res.is_a?(Net::HTTPSuccess)
 j = JSON.parse(res.body)
 cand = (j["candidates"] || [])[0] || {}
