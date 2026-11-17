@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <title>גל היום</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Assistant:wght@400;600;700;800&display=swap">
@@ -226,6 +227,65 @@ a{color:inherit}
 .foot-note{font-size:13px;color:var(--muted);text-align:center;max-width:52ch;margin:0 auto}
 .err{color:var(--poor)}
 
+/* PROFILE + TIME SCRUBBER */
+.prof{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.prof .lbl{font-size:13px;font-weight:800;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chipbtn{border:1px solid var(--glass-edge);background:var(--glass);border-radius:99px;padding:6px 13px;min-height:38px;font-weight:800;font-size:14px;transition:background .25s,color .25s,transform 120ms ease-out}
+.chipbtn[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--accent-ink);border-color:transparent}
+.chipbtn:active{transform:scale(.95)}
+.scrub{margin-top:12px;border-radius:20px;padding:12px 14px 10px}
+.scrub-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.scrub-time{font-family:var(--display);font-size:38px;font-weight:700;line-height:.9}
+.scrub-hint{font-size:12.5px;color:var(--muted);font-weight:700}
+.scrub-reset{background:none;border:1px solid var(--line);border-radius:99px;padding:4px 11px;font-size:12.5px;font-weight:800;min-height:32px}
+.scrub input{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:4px 0 0;touch-action:pan-y;cursor:grab}
+.scrub input::-webkit-slider-runnable-track{height:10px;border-radius:9px;background:var(--track)}
+.scrub input::-moz-range-track{height:10px;border-radius:9px;background:var(--track)}
+.scrub input::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-10px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 4px 14px rgba(0,0,0,.35);transition:transform .15s}
+.scrub input::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.scrub input:active::-webkit-slider-thumb{transform:scale(1.15)}
+.scrub-ticks{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);font-weight:700;padding:0 4px}
+.list.static .beach{animation:none}
+/* FAVORITES AI */
+.favsum{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.favsum .fs{border-radius:14px;padding:10px 12px;background:color-mix(in srgb,var(--bg) 35%,transparent);border:1px solid var(--line)}
+.favsum .fs b{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:800;color:var(--sun)}
+.favsum .fs b svg{width:15px;height:15px;fill:var(--sun);stroke:var(--sun)}
+.favsum .fs p{margin:3px 0 0;font-size:15.5px;line-height:1.55}
+.favsum .hint{font-size:13.5px;color:var(--muted);font-weight:600;margin:0}
+/* VIDEOS + NONE */
+.vids{display:flex;flex-direction:column;gap:8px}
+.vid{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:center;text-decoration:none;border-radius:14px;padding:6px;background:color-mix(in srgb,var(--bg) 35%,transparent);border:1px solid var(--line)}
+.vid img{width:112px;height:63px;object-fit:cover;border-radius:10px;background:var(--line)}
+.vid b{display:block;font-size:14px;font-weight:800;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vid small{font-size:12px;color:var(--muted);font-weight:600}
+.none{margin:0;font-size:14.5px;color:var(--muted);font-weight:600;padding:10px 12px;border-radius:14px;border:1px dashed var(--line)}
+/* REPORT */
+.btn-report{border:0;border-radius:16px;padding:0 18px;min-height:48px;font-weight:800;font-size:16px;display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--sun),var(--sun-2));color:#2b0f00;box-shadow:0 6px 20px color-mix(in srgb,var(--sun) 35%,transparent)}
+.btn-report svg{width:19px;height:19px}
+dialog.rep{border:1px solid var(--glass-edge);border-radius:26px;padding:0;width:min(560px,calc(100% - 24px));max-height:calc(100% - 24px);background:var(--glass-strong);color:var(--fg);
+  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+dialog.rep::backdrop{background:rgba(2,10,14,.55)}
+dialog.rep[open]{animation:repIn .35s cubic-bezier(.2,.9,.25,1)}
+@keyframes repIn{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:none}}
+.rep form{display:flex;flex-direction:column;gap:14px;padding:20px}
+.rep h3{margin:0;font-family:var(--display);font-size:40px;line-height:.95}
+.rep label,.rep .q{font-size:13.5px;font-weight:800;color:var(--muted);display:block;margin-bottom:6px}
+.rep select,.rep textarea{width:100%;font:inherit;font-size:16px;padding:11px 13px;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 40%,transparent);color:var(--fg)}
+.rep textarea{min-height:76px;resize:vertical}
+.rates{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rates button{border:1px solid var(--line);background:var(--glass);border-radius:14px;min-height:58px;font-weight:800;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.rates button span{font-family:var(--display);font-size:26px;line-height:1}
+.rates button[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--accent-ink);border-color:transparent}
+.rep .row2{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.rep .msg{font-size:14px;font-weight:700;margin-inline-end:auto}
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));inset-inline:0;margin:0 auto;width:max-content;max-width:90%;z-index:60;padding:12px 18px;border-radius:99px;
+  background:var(--glass-strong);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:repIn .3s ease-out}
+.aisum{border-radius:14px;padding:11px 13px;background:color-mix(in srgb,var(--accent-2) 12%,transparent);border:1px solid var(--line);font-size:15.5px;line-height:1.6}
+.aisum small{display:block;font-size:12px;font-weight:800;color:var(--accent);margin-bottom:2px}
+
 @media (min-width:660px){.hero{margin-inline:0;border-radius:32px;margin-top:16px}.hero-top{padding-top:18px}.bar{margin-inline:0;padding-inline:0}}
 @media (max-width:420px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:opacity .2s!important}}
@@ -272,11 +332,19 @@ a{color:inherit}
         </div>
         <p class="ai-text" id="aiText">טוען…</p>
         <div class="tag" id="aiTag"></div>
+        <div class="favsum" id="favSum"></div>
       </article>
 
       <div>
         <div class="section-head"><h2>איפה גולשים</h2><span class="tag" id="listTag"></span></div>
+        <div class="prof"><span class="lbl">הגלשן שלי</span><div class="chips" id="profChips" role="group" aria-label="סוג גלשן"></div></div>
         <div class="days" id="days" role="group" aria-label="בחירת יום"></div>
+        <div class="scrub glass" id="scrub">
+          <div class="scrub-top"><span class="scrub-time num" id="scrubTime">–</span><span class="scrub-hint" id="scrubHint">גרור כדי לראות שעה אחרת</span><button class="scrub-reset press" id="scrubReset" type="button" hidden>איפוס</button></div>
+          <label for="scrubIn" class="sr">בחירת שעה</label>
+          <input type="range" id="scrubIn" min="0" max="10" step="1" value="0">
+          <div class="scrub-ticks num" id="scrubTicks" aria-hidden="true"></div>
+        </div>
         <div class="list" id="list"></div>
       </div>
 
@@ -287,6 +355,7 @@ a{color:inherit}
       <div>
         <div class="section-head"><h2>מה גולשים אומרים</h2></div>
         <div class="scanline" style="margin-top:8px"><span class="tag" id="scanTag"></span></div>
+        <div style="margin-top:12px" id="reportWrap" hidden><button class="btn-report press" type="button" id="reportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M12 3v8M8 7l4 4 4-4"/></svg>הייתי במים, אני מדווח</button></div>
       </div>
       <div class="list" id="reports" style="margin-top:0"></div>
       <div>
@@ -300,9 +369,19 @@ a{color:inherit}
     </section>
   </div>
 
-  <p class="foot-note">התחזית: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>, מתעדכנת כל 3 שעות. הציון מחושב לפי גובה גל, מחזור ורוח. דיווחי הגולשים והסיכום נכתבים על ידי AI (Gemini) פעמיים ביום. תמיד לבדוק בעיניים לפני שנכנסים למים.</p>
+  <p class="foot-note">התחזית: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>, מתעדכנת כל 3 שעות. הציון מחושב לפי גובה גל, מחזור, רוח, הכיוון שהחוף פונה אליו והגלשן שבחרת. דיווחי הגולשים והסיכום נכתבים על ידי AI (Gemini) פעמיים ביום. תמיד לבדוק בעיניים לפני שנכנסים למים.</p>
 </div>
 
+<dialog class="rep" id="repDlg" aria-labelledby="repTitle">
+  <form id="repForm" method="dialog">
+    <h3 id="repTitle">איך היה במים?</h3>
+    <div><label for="repBeach">באיזה חוף</label><select id="repBeach" required></select></div>
+    <div><span class="q" id="repRateQ">איך הגלים</span><div class="rates" id="repRates" role="group" aria-labelledby="repRateQ"></div></div>
+    <div><span class="q" id="repSizeQ">גובה (לא חובה)</span><div class="chips" id="repSizes" role="group" aria-labelledby="repSizeQ"></div></div>
+    <div><label for="repText">משפט אחד (לא חובה)</label><textarea id="repText" maxlength="200" placeholder="למשל: נקי ועקבי, קצת זרם בצפון"></textarea></div>
+    <div class="row2"><span class="msg" id="repMsg" role="status"></span><button type="button" class="ghost press" id="repCancel">ביטול</button><button type="submit" class="btn-primary press" id="repSend">שליחה</button></div>
+  </form>
+</dialog>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
   <div class="grab" id="grab">
@@ -343,7 +422,9 @@ const COMPASS=["צפון","צפון-מזרח","מזרח","דרום-מזרח","ד
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
-let DATA=null, REPORTS=null, beaches=[], selDay="now", favs=new Set(store.get("favs",[])), view="F";
+let DATA=null, REPORTS=null, USER_REPORTS=[], beaches=[], selDay="now", selIdx=null, favs=new Set(store.get("favs",[])), view="F";
+const PROFILES={beg:{n:"מתחיל",lo:.2,a:.4,b:.9,hi:1.6},long:{n:"לונג",lo:.25,a:.5,b:1.2,hi:2.2},fun:{n:"פאן",lo:.3,a:.7,b:1.6,hi:2.6},short:{n:"שורט",lo:.4,a:1,b:2.2,hi:3.4}};
+let PROF=store.get("prof","fun"); if(!PROFILES[PROF]) PROF="fun";
 
 /* ================= spring (Apple-style: damping ratio + response, interruptible, velocity-aware) ================= */
 function spring({from,to,velocity=0,damping=1,response=.4,onUpdate,onDone}){
@@ -362,18 +443,25 @@ const project=(v,d=.998)=>(v/1000)*d/(1-d);
 const rubber=(o,dim,c=.55)=>(o*dim*c)/(dim+c*Math.abs(o));
 
 /* ================= scoring ================= */
-function heightScore(h){ if(h==null) return 0;
-  if(h<0.3) return 0; if(h<0.6) return (h-0.3)/0.3*3.5; if(h<1) return 3.5+(h-0.6)/0.4*3;
-  if(h<=2.2) return 6.5+Math.min(1,(h-1)/0.8)*2; return Math.max(3,8.5-(h-2.2)*2.2); }
-function windInfo(dir,spd){ const on=Math.cos((dir-270)*Math.PI/180); let type=on>0.5?"on":on<-0.4?"off":"cross"; if(spd<8) type="calm"; return {on,type}; }
+/* height curve depends on the board: each profile has a floor (lo), a sweet spot (a..b) and a "too big" point (hi) */
+function heightScore(h){ const p=PROFILES[PROF]; if(h==null||h<p.lo) return 0;
+  if(h<p.a) return (h-p.lo)/(p.a-p.lo)*6.5;
+  if(h<=p.b) return 6.5+(h-p.a)/(p.b-p.a)*2;
+  return Math.max(1.5,8.5-(h-p.b)/(p.hi-p.b)*5.5); }
+/* how much of a swell coming FROM sdir reaches a beach facing `face` (1 = straight in, 0.1 = blocked) */
+function exposure(sdir,face){ if(sdir==null) return 1; const d=Math.abs(((sdir-face+540)%360)-180); if(d>=90) return 0.1; return Math.max(0.1,Math.pow(Math.cos(d*Math.PI/180),0.7)); }
+function windInfo(dir,spd,face=270){ const on=Math.cos((dir-face)*Math.PI/180); let type=on>0.5?"on":on<-0.4?"off":"cross"; if(spd<8) type="calm"; return {on,type}; }
 function hourScore(b,i){
-  const h=b.wave[i], T=b.period[i], spd=b.wind[i], dir=b.wdir[i]; if(h==null) return null;
+  const raw=b.wave[i], T=b.period[i], spd=b.wind[i], dir=b.wdir[i]; if(raw==null) return null;
+  const h=raw*exposure(b.sdir[i],b.f);
   let s=heightScore(h); s+=Math.max(0,Math.min(1,((T||0)-4)/5))*2;
-  const w=windInfo(dir,spd);
+  const w=windInfo(dir,spd,b.f);
   if(w.on>0) s-=Math.min(4,(spd/28)*3.5*w.on); else s+=Math.min(1,(-w.on)*(spd<25?1:0.3));
-  if(spd>35) s-=1.5; if(h<0.3) s=Math.min(s,1);
+  if(spd>35) s-=1.5; if(h<PROFILES[PROF].lo) s=Math.min(s,1);
   return Math.max(0,Math.min(10,s));
 }
+const wInfo=(b,i)=>windInfo(b.wdir[i],b.wind[i],b.f);
+function rescore(){ beaches.forEach(o=>{o.scores=o.times.map((_,i)=>hourScore(o,i));}); }
 const scoreClass=s=>s==null?"s-flat":s>=6.5?"s-good":s>=4?"s-ok":s>=1.5?"s-poor":"s-flat";
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const scoreColor=s=>cssVar(s>=6.5?"--good":s>=4?"--ok":s>=1.5?"--poor":"--flat");
@@ -397,7 +485,7 @@ function build(){
   const nowISO=nowLocalISO(); let nowI=times.indexOf(nowISO); if(nowI<0) nowI=Math.max(0,times.filter(t=>t<nowISO).length-1);
   beaches=BEACHES.map((b,k)=>{
     const m=M[k].hourly, w=W[k].hourly, wd=W[k].daily;
-    const o={...b,idx:k,times,period:m.wave_period.map((p,i)=>Math.max(p??0,m.swell_wave_period[i]??0)),wdir:w.wind_direction_10m,wind:w.wind_speed_10m,
+    const o={...b,idx:k,f:b.f??270,sdir:m.swell_wave_direction||m.wave_direction||[],times,period:m.wave_period.map((p,i)=>Math.max(p??0,m.swell_wave_period[i]??0)),wdir:w.wind_direction_10m,wind:w.wind_speed_10m,
       gust:w.wind_gusts_10m,air:w.temperature_2m,sst:m.sea_surface_temperature,sunrise:wd.sunrise,sunset:wd.sunset,dates:wd.time};
     o.wave=m.wave_height.map((h,i)=>h==null?null:Math.max(h,m.swell_wave_height[i]??0));
     o.scores=times.map((_,i)=>hourScore(o,i));
@@ -407,7 +495,7 @@ function build(){
 function daylightIdx(b,d){ const date=b.dates[d], sr=b.sunrise[d], ss=b.sunset[d]; const a=[]; b.times.forEach((t,i)=>{ if(t.startsWith(date)&&t>=sr.slice(0,13)&&t<=ss) a.push(i)}); return a; }
 function bestWindow(b,d){ let idxs=daylightIdx(b,d); if(d===0) idxs=idxs.filter(i=>i>=DATA.nowI); if(!idxs.length) return null;
   let best=idxs[0]; idxs.forEach(i=>{ if((b.scores[i]??-1)>(b.scores[best]??-1)) best=i}); return best; }
-const viewIndex=b=>selDay==="now"?DATA.nowI:(bestWindow(b,selDay)??DATA.nowI);
+const viewIndex=b=>selIdx!=null?selIdx:selDay==="now"?DATA.nowI:(bestWindow(b,selDay)??DATA.nowI);
 const ranked=()=>beaches.map(b=>{const i=viewIndex(b);return {b,i,s:b.scores[i]}}).sort((x,y)=>(y.s??-1)-(x.s??-1));
 
 /* ================= icons ================= */
@@ -425,7 +513,7 @@ function renderDays(){
   const el=$("days"); el.innerHTML="";
   const mk=(key,label,sub,best)=>{const b=document.createElement("button");b.className="day";b.type="button";b.setAttribute("aria-pressed",String(selDay===key));
     b.innerHTML=`${label}<small class="num">${sub}</small><span class="bar-mini" aria-hidden="true"><i style="width:${Math.round((best||0)*10)}%;background:${scoreColor(best||0)}"></i></span>`;
-    b.onclick=()=>{ if(selDay===key) return; selDay=key; renderForecast(true); };el.appendChild(b);};
+    b.onclick=()=>{ if(selDay===key) return; selDay=key; selIdx=null; renderForecast(true); };el.appendChild(b);};
   const nowBest=Math.max(...beaches.map(b=>b.scores[DATA.nowI]??0));
   mk("now","עכשיו",beaches[0].times[DATA.nowI].slice(11,16),nowBest);
   DATA.dates.forEach((d,i)=>{const best=Math.max(...beaches.map(b=>{const k=bestWindow(b,i);return k==null?0:(b.scores[k]??0)})); mk(i,dayLabel(d,i),d.slice(8,10)+"/"+d.slice(5,7),best);});
@@ -433,40 +521,74 @@ function renderDays(){
 let ringAnim=null;
 function renderHero(){
   const top=ranked()[0]; const b=top.b, i=top.i;
-  $("heroEyebrow").textContent= selDay==="now"?"החוף הכי טוב עכשיו": selDay===0?"החוף הכי טוב היום":`החוף הכי טוב ביום ${dayLabel(DATA.dates[selDay],selDay)}`;
+  const dl=selDay==="now"?"":selDay===0?"היום":selDay===1?"מחר":`ביום ${dayLabel(DATA.dates[selDay],selDay)}`;
+  $("heroEyebrow").textContent= selIdx!=null?`החוף הכי טוב ${dl?dl+" ":""}ב-${b.times[selIdx].slice(11,16)}` : selDay==="now"?"החוף הכי טוב עכשיו":`החוף הכי טוב ${dl}`;
   $("bestName").textContent=b.n;
-  $("bestSub").textContent= selDay==="now"? `${b.r} · ${scoreWord(top.s)}` : `${b.r} · הכי טוב ב-${b.times[i].slice(11,16)}`;
+  $("bestSub").textContent= (selDay==="now"||selIdx!=null)? `${b.r} · ${scoreWord(top.s)}` : `${b.r} · הכי טוב ב-${b.times[i].slice(11,16)}`;
   const arc=$("ringArc"), target=top.s||0; const cur=ringAnim?ringAnim.value:0;
   ringAnim&&ringAnim.stop();
   ringAnim=spring({from:cur,to:target,velocity:ringAnim?ringAnim.velocity:0,damping:1,response:.9,onUpdate:x=>{arc.style.strokeDashoffset=276.5*(1-x/10); $("ringVal").textContent=x.toFixed(1);}});
-  const w=windInfo(b.wdir[i],b.wind[i]);
+  const w=wInfo(b,i);
   $("heroStats").innerHTML=`<span class="chip num">גל ${fmt(b.wave[i])} מ׳</span><span class="chip num">מחזור ${fmt(b.period[i],0)} שנ׳</span>
    <span class="chip num">${windWord(w.type)} · ${fmt(b.wind[i],0)} קמ״ש</span><span class="chip num">מים ${fmt(b.sst[i],0)}°</span>`;
 }
-function renderList(){
-  const el=$("list"); el.innerHTML=""; const r=ranked();
-  $("listTag").textContent= selDay==="now"?`נכון ל-${beaches[0].times[DATA.nowI].slice(11,16)}`:"לפי השעה הכי טובה ביום";
+function renderList(quiet){
+  const el=$("list"); el.classList.toggle("static",!!quiet); el.innerHTML=""; const r=ranked();
+  $("listTag").textContent= selIdx!=null?`נכון ל-${beaches[0].times[selIdx].slice(11,16)}`: selDay==="now"?`נכון ל-${beaches[0].times[DATA.nowI].slice(11,16)}`:"לפי השעה הכי טובה ביום";
   const favRows=r.filter(x=>favs.has(x.b.idx)), rest=r.filter(x=>!favs.has(x.b.idx)); let n=0;
   const label=t=>{const d=document.createElement("div");d.className="group-label";d.textContent=t;el.appendChild(d);};
   if(favRows.length){label("המועדפים שלך"); favRows.forEach(x=>el.appendChild(beachEl(x,r.indexOf(x)+1,n++))); label("כל החופים");}
   rest.forEach(x=>el.appendChild(beachEl(x,r.indexOf(x)+1,n++)));
 }
 function beachEl({b,i,s},rank,n){
-  const w=windInfo(b.wdir[i],b.wind[i]);
+  const w=wInfo(b,i);
   const art=document.createElement("article"); art.className="beach glass"; art.style.setProperty("--i",n);
   art.innerHTML=`<div class="row press" role="button" tabindex="0" aria-label="${b.n}, ציון ${s==null?"אין":Math.round(s)}">
     <span class="rank num">${rank}</span>
-    <span class="name"><b>${b.n}</b><span>${b.r}${selDay!=="now"?` · ${b.times[i].slice(11,16)}`:""}${b.cams?" · מצלמה":""}</span></span>
+    <span class="name"><b>${b.n}</b><span>${b.r}${selDay!=="now"&&selIdx==null?` · ${b.times[i].slice(11,16)}`:""}${b.cams?" · מצלמה":""}</span></span>
     <span class="meta num"><span class="h">${fmt(b.wave[i])} מ׳</span><span>${fmt(b.wind[i],0)} קמ״ש ${ICON.arrow((b.wdir[i]+180)%360)}</span></span>
     <span style="display:flex;align-items:center;gap:4px"><span class="score num ${scoreClass(s)}">${s==null?"–":Math.round(s)}</span>
     <button class="fav" type="button" aria-label="חוף מועדף: ${b.n}" aria-pressed="${favs.has(b.idx)}">${ICON.star}</button></span></div>`;
   const row=art.querySelector(".row");
   row.addEventListener("click",e=>{ if(e.target.closest(".fav")) return; openSheet(b,i,row); });
   row.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!e.target.closest(".fav")){e.preventDefault();openSheet(b,i,row);} });
-  art.querySelector(".fav").addEventListener("click",e=>{e.stopPropagation(); favs.has(b.idx)?favs.delete(b.idx):favs.add(b.idx); store.set("favs",[...favs]); renderList();});
+  art.querySelector(".fav").addEventListener("click",e=>{e.stopPropagation(); favs.has(b.idx)?favs.delete(b.idx):favs.add(b.idx); store.set("favs",[...favs]); renderList(true); renderFavSum();});
   return art;
 }
-function renderForecast(dayChanged){ renderDays(); renderHero(); renderList(); runAI(); }
+function renderForecast(dayChanged){ renderProf(); renderDays(); renderScrub(); renderHero(); renderList(); runAI(); }
+
+/* ================= board profile ================= */
+function renderProf(){
+  const el=$("profChips"); el.innerHTML="";
+  Object.entries(PROFILES).forEach(([k,p])=>{ const b=document.createElement("button"); b.type="button"; b.className="chipbtn"; b.textContent=p.n; b.setAttribute("aria-pressed",String(PROF===k));
+    b.onclick=()=>{ if(PROF===k) return; PROF=k; store.set("prof",k); rescore(); renderForecast(); }; el.appendChild(b); });
+}
+
+/* ================= time scrubber: drag to any hour, everything follows ================= */
+function scrubHours(){
+  const t=beaches[0].times;
+  if(selDay==="now"){ const a=[]; for(let i=DATA.nowI;i<Math.min(t.length,DATA.nowI+16);i++) a.push(i); return a; }
+  const date=DATA.dates[selDay]; return t.map((x,i)=>[x,i]).filter(([x])=>x.startsWith(date)&&+x.slice(11,13)>=5&&+x.slice(11,13)<=20).map(([,i])=>i);
+}
+let scrubList=[];
+function renderScrub(){
+  scrubList=scrubHours(); const inp=$("scrubIn"); if(!scrubList.length){ $("scrub").hidden=true; return; } $("scrub").hidden=false;
+  inp.max=scrubList.length-1;
+  const cur=selIdx!=null?selIdx:viewIndex(ranked()[0].b); let pos=scrubList.indexOf(cur); if(pos<0) pos=0; inp.value=pos;
+  /* track = best score across the coast for each hour, so you can see the good window before dragging */
+  const stops=scrubList.map((i,k)=>{const best=Math.max(...beaches.map(b=>b.scores[i]??0)); return `${scoreColor(best)} ${(k/(scrubList.length-1||1)*100).toFixed(1)}%`;});
+  inp.style.setProperty("--track",`linear-gradient(to left,${stops.join(",")})`);
+  const tk=[scrubList[0],scrubList[Math.floor(scrubList.length/2)],scrubList[scrubList.length-1]].map(i=>beaches[0].times[i].slice(11,16));
+  $("scrubTicks").innerHTML=tk.map(x=>`<span>${x}</span>`).join("");
+  updScrubLabel(scrubList[pos]);
+}
+function updScrubLabel(i){
+  $("scrubTime").textContent=beaches[0].times[i].slice(11,16);
+  $("scrubReset").hidden=selIdx==null;
+  $("scrubHint").textContent= selIdx!=null?"":selDay==="now"?"עכשיו · גרור לשעות הבאות":"השעה הכי טובה · גרור לשעה אחרת";
+}
+$("scrubIn").addEventListener("input",e=>{ const i=scrubList[+e.target.value]; if(i==null) return; selIdx=i; updScrubLabel(i); renderHero(); renderList(true); runAI(); });
+$("scrubReset").onclick=()=>{ selIdx=null; renderScrub(); renderHero(); renderList(true); runAI(); };
 
 /* ================= chart ================= */
 function chartSVG(b){
@@ -499,13 +621,15 @@ function animateSheet(to,velocity=0,damping=1,response=.38){
   sheetAnim=spring({from:sheetY,to,velocity,damping,response,onUpdate:setSheetY,onDone:()=>{ if(to>=sheetH){ sheet.style.visibility="hidden"; } }});
 }
 function openSheet(b,i,src){
-  lastFocus=src; const w=windInfo(b.wdir[i],b.wind[i]); const s=b.scores[i];
+  lastFocus=src; const w=wInfo(b,i); const s=b.scores[i];
   $("sheetScore").className="score num "+scoreClass(s); $("sheetScore").textContent=s==null?"–":Math.round(s);
   $("sheetTitle").firstChild.textContent=b.n; $("sheetSub").textContent=`${b.r} · ${scoreWord(s)}${selDay!=="now"?` · ${b.times[i].slice(11,16)}`:""}`;
   const today=bestWindow(b,0), tmr=bestWindow(b,1);
   const bt=(k,lab)=>k==null?"":`${lab} ב-<span class="num">${b.times[k].slice(11,16)}</span> · ציון ${fmt(b.scores[k],1)} · ${fmt(b.wave[k])} מ׳`;
-  const q=encodeURIComponent("גלישה "+b.n.split(" – ")[0].split(" / ")[0]);
-  const rep=(REPORTS&&REPORTS.reports||[]).filter(r=>r.beach===b.idx);
+  const rep=allReports().filter(r=>r.beach===b.idx);
+  const aiB=SUMMARY&&SUMMARY.beaches&&SUMMARY.beaches[b.idx];
+  const vids=(REPORTS&&REPORTS.videos&&REPORTS.videos[b.idx])||[];
+  const sd=b.sdir[i], ex=exposure(sd,b.f);
   $("sheetBody").innerHTML=`
    <div class="facts num">
     <div class="fact"><small>גובה גל</small><b>${fmt(b.wave[i])} מ׳</b></div>
@@ -513,17 +637,18 @@ function openSheet(b,i,src){
     <div class="fact"><small>רוח מ${compass(b.wdir[i])}</small><b>${fmt(b.wind[i],0)} <span style="font-size:12px">קמ״ש</span></b></div>
     <div class="fact"><small>מים / אוויר</small><b>${fmt(b.sst[i],0)}° / ${fmt(b.air[i],0)}°</b></div>
    </div>
+   ${aiB?`<div class="aisum"><small>מה ה-AI אומר</small>${esc(aiB)}</div>`:""}
    <div class="besttime">${ICON.clock}<span>${[bt(today,"היום הכי טוב"),bt(tmr,"מחר הכי טוב")].filter(Boolean).join("<br>")||"לא נשאר היום חלון אור טוב"}</span></div>
    <div class="chart-wrap">${chartSVG(b)}</div>
-   <p class="sub-h">${windWord(w.type)} · משבים עד ${fmt(b.gust[i],0)} קמ״ש</p>
-   ${rep.length?`<p class="sub-h">מה גולשים אמרו על החוף</p>${rep.map((r,k)=>reportHTML(r,k)).join("")}`:""}
-   <p class="sub-h">לראות את הים עכשיו</p>
-   <div class="links">
-    ${(b.cams||[]).map(c=>`<a class="cam-link" href="${c.u}" target="_blank" rel="noopener">${ICON.cam}מצלמה · ${c.n}</a>`).join("")}
-    <a href="https://www.youtube.com/results?search_query=${q}&sp=EgIIAw%3D%3D" target="_blank" rel="noopener">${ICON.play}יוטיוב מהשבוע</a>
-    <a href="https://www.google.com/search?q=${q}+site:tiktok.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.play}טיקטוק מהשבוע</a>
-<a href="https://www.google.com/search?q=${q}+site:instagram.com&tbs=qdr:w" target="_blank" rel="noopener">${ICON.search}אינסטגרם מהשבוע</a>
-   </div>`;
+   <p class="sub-h">${windWord(w.type)} · משבים עד ${fmt(b.gust[i],0)} קמ״ש${sd!=null?` · הסוול מ${compass(sd)}, החוף פונה ל${compass(b.f)}${ex<0.6?" (מגיע חלש)":""}`:""}</p>
+   <p class="sub-h">מה גולשים אמרו על החוף</p>
+   ${rep.length?rep.map((r,k)=>reportHTML(r,k)).join(""):`<p class="none">אין דיווחים מהיממה האחרונה.</p>`}
+   ${SB?`<div><button class="btn-report press" type="button" data-report="${b.idx}">${ICON.chat}דווח על החוף הזה</button></div>`:""}
+   <p class="sub-h">מצלמה חיה</p>
+   ${(b.cams||[]).length?`<div class="links">${b.cams.map(c=>`<a class="cam-link" href="${esc(c.u)}" target="_blank" rel="noopener">${ICON.cam}${esc(c.n)}</a>`).join("")}</div>`:`<p class="none">אין מצלמה חיה בחוף הזה.</p>`}
+   <p class="sub-h">סרטונים מהיומיים האחרונים</p>
+   ${vids.length?`<div class="vids">${vids.map(v=>`<a class="vid" href="https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/mqdefault.jpg" alt=""><span><b>${esc(v.title)}</b><small>${esc(v.channel||"יוטיוב")} · ${ago(v.when)}</small></span></a>`).join("")}</div>`:`<p class="none">אין סרטונים חדשים מהחוף הזה מהיומיים האחרונים.</p>`}`;
+  const rb=$("sheetBody").querySelector("[data-report]"); if(rb) rb.onclick=()=>openReport(b.idx);
   sheet.style.visibility="visible"; scrim.classList.add("on"); sheetH=sheet.getBoundingClientRect().height+20;
   if(!sheetOpen && (!sheetAnim || sheetY>=sheetH-1)) setSheetY(sheetH);
   sheetOpen=true; $("sheetBody").scrollTop=0; animateSheet(0,0,1,.38);
@@ -581,11 +706,12 @@ function reportHTML(r,k){
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function renderPeople(){
-  const rs=(REPORTS&&REPORTS.reports||[]).slice().sort((a,b)=>parseTS(b.when)-parseTS(a.when));
+  const rs=allReports().slice().sort((a,b)=>parseTS(b.when)-parseTS(a.when));
+  $("reportWrap").hidden=!SB;
   $("pCount").hidden=!rs.length; $("pCount").textContent=rs.length;
-  $("scanTag").textContent=REPORTS?`ה-AI סרק את הרשת ${ago(REPORTS.scanned)} · ${rs.length} דיווחים מ-24 השעות האחרונות`:"עוד לא בוצעה סריקה";
+  $("scanTag").textContent=REPORTS?`ה-AI סרק את הרשת ${ago(REPORTS.scanned)}${USER_REPORTS.length?` · ${USER_REPORTS.length} דיווחים של גולשים באפליקציה`:""} · ${rs.length} דיווחים בסך הכול`:"עוד לא בוצעה סריקה";
   $("reports").innerHTML= rs.length? rs.map((r,k)=>reportHTML(r,k)).join("") :
-   `<div class="empty glass">${ICON.chat}<h3>אין דיווחים חדשים מגולשים</h3><p>${esc(REPORTS&&REPORTS.note||"Claude יחפש דיווחים בסריקה הבאה.")}</p><p>בינתיים אפשר להציץ במצלמות ולראות בעצמך.</p></div>`;
+   `<div class="empty glass">${ICON.chat}<h3>אין דיווחים חדשים מגולשים</h3><p>${esc(REPORTS&&REPORTS.note||"ה-AI יחפש דיווחים בסריקה הבאה.")}</p><p>${SB?"היית היום במים? הדיווח שלך יעזור לכל מי שבודק אחריך.":"בינתיים אפשר להציץ במצלמות ולראות בעצמך."}</p></div>`;
   $("cams").innerHTML=BEACHES.flatMap(b=>(b.cams||[]).map(c=>`<a class="cam glass press" href="${c.u}" target="_blank" rel="noopener"><span class="live"><i></i>LIVE</span><b>${c.n}</b><span>${b.n}</span></a>`)).join("");
   $("sources").innerHTML=(REPORTS&&REPORTS.sources_checked||[]).map(s=>`<span>${esc(s)}</span>`).join("");
 }
@@ -593,30 +719,39 @@ function renderPeople(){
 /* ================= AI ================= */
 function contextFor(dayKey){
   return beaches.map(b=>{ const parts=[]; const dIdx=dayKey==="now"?[0,1]:[dayKey];
-    if(dayKey==="now"){const i=DATA.nowI; const w=windInfo(b.wdir[i],b.wind[i]); parts.push(`עכשיו: ציון ${fmt(b.scores[i])}, גל ${fmt(b.wave[i])}מ, מחזור ${fmt(b.period[i],0)}ש, ${windWord(w.type)} ${fmt(b.wind[i],0)}קמ"ש`);}
-    dIdx.forEach(d=>{const k=bestWindow(b,d); if(k!=null){const w=windInfo(b.wdir[k],b.wind[k]); parts.push(`${dayLabel(DATA.dates[d],d)} שיא ב-${b.times[k].slice(11,16)}: ציון ${fmt(b.scores[k])}, גל ${fmt(b.wave[k])}מ, מחזור ${fmt(b.period[k],0)}ש, ${windWord(w.type)} ${fmt(b.wind[k],0)}קמ"ש`);}});
+    if(dayKey==="now"){const i=DATA.nowI; const w=wInfo(b,i); parts.push(`עכשיו: ציון ${fmt(b.scores[i])}, גל ${fmt(b.wave[i])}מ, מחזור ${fmt(b.period[i],0)}ש, ${windWord(w.type)} ${fmt(b.wind[i],0)}קמ"ש`);}
+    dIdx.forEach(d=>{const k=bestWindow(b,d); if(k!=null){const w=wInfo(b,k); parts.push(`${dayLabel(DATA.dates[d],d)} שיא ב-${b.times[k].slice(11,16)}: ציון ${fmt(b.scores[k])}, גל ${fmt(b.wave[k])}מ, מחזור ${fmt(b.period[k],0)}ש, ${windWord(w.type)} ${fmt(b.wind[k],0)}קמ"ש`);}});
     return `${b.n} (${b.r}): ${parts.join(" | ")}`;}).join("\n");
 }
-function peopleContext(){ const rs=REPORTS&&REPORTS.reports||[]; if(!rs.length) return "אין דיווחי גולשים עדכניים."; return rs.map(r=>`${r.beach!=null?BEACHES[r.beach].n:r.spot} (${r.source}, ${ago(r.when)}): ${r.text}${r.rating!=null?` [דירוג ${r.rating}/5]`:""}`).join("\n"); }
+function peopleContext(){ const rs=allReports(); if(!rs.length) return "אין דיווחי גולשים עדכניים."; return rs.map(r=>`${r.beach!=null?BEACHES[r.beach].n:r.spot} (${r.source}, ${ago(r.when)}): ${r.text}${r.rating!=null?` [דירוג ${r.rating}/5]`:""}`).join("\n"); }
 function fullContext(){ return beaches.map(b=>{const segs=[]; DATA.dates.forEach((d,k)=>{daylightIdx(b,k).filter((_,j)=>j%3===0).forEach(i=>segs.push(`${dayLabel(d,k)} ${b.times[i].slice(11,16)} ${fmt(b.wave[i])}מ/${fmt(b.period[i],0)}ש/רוח ${fmt(b.wind[i],0)} מ${compass(b.wdir[i])}/ציון ${fmt(b.scores[i],0)}`));}); return `${b.n}: ${segs.join("; ")}`;}).join("\n"); }
 function ruleSummary(){
   const r=ranked(); const good=r.filter(x=>x.s>=6.5), ok=r.filter(x=>x.s>=4&&x.s<6.5); const top=r[0];
   if(top.s<1.5) return "הים כמעט שטוח לאורך כל החוף. יום טוב לשחייה או לסדר ציוד.";
   let t=`${top.b.n} מוביל עם ${fmt(top.b.wave[top.i])} מטר ומחזור של ${fmt(top.b.period[top.i],0)} שניות${selDay!=="now"?`, הכי טוב סביב ${top.b.times[top.i].slice(11,16)}`:""}. `;
   if(good.length>1) t+=`עובד טוב גם ב${good.slice(1,4).map(x=>x.b.n).join(", ")}. `; else if(ok.length) t+=`גליש גם ב${ok.slice(0,3).map(x=>x.b.n).join(", ")}. `;
-  const w=windInfo(top.b.wdir[top.i],top.b.wind[top.i]); t+= w.type==="on"?"הרוח מהים, אז כדאי להקדים לבוקר.":w.type==="off"?"רוח מהיבשה מחליקה את הגלים.":"";
+  const w=wInfo(top.b,top.i); t+= w.type==="on"?"הרוח מהים, אז כדאי להקדים לבוקר.":w.type==="off"?"רוח מהיבשה מחליקה את הגלים.":"";
   return t.trim();
 }
 let SUMMARY=null;
+function renderFavSum(){
+  const el=$("favSum"); if(!beaches.length){el.innerHTML="";return;}
+  const list=[...favs].filter(k=>beaches[k]);
+  if(!list.length){ el.innerHTML=`<p class="hint">סמן חוף בכוכב ותקבל כאן סיכום אישי עליו.</p>`; return; }
+  el.innerHTML=list.map(k=>{ const b=beaches[k]; const ai=SUMMARY&&SUMMARY.beaches&&SUMMARY.beaches[k];
+    let txt=ai; if(!txt){ const t=bestWindow(b,0), m=bestWindow(b,1); const part=(x,l)=>x==null?"":`${l} הכי טוב ב-${b.times[x].slice(11,16)} (ציון ${Math.round(b.scores[x]??0)}, ${fmt(b.wave[x])} מ׳)`; txt=[part(t,"היום"),part(m,"מחר")].filter(Boolean).join(". ")||"אין נתונים"; }
+    return `<div class="fs"><b>${ICON.star}${esc(b.n)}</b><p>${esc(txt)}</p></div>`; }).join("");
+}
 function runAI(){
   const fresh=SUMMARY&&SUMMARY.text&&(Date.now()-parseTS(SUMMARY.created))<14*3600e3;
-  if(selDay==="now"&&fresh){
+  if(fresh&&selIdx==null&&(selDay==="now"||selDay<=1)){
     $("aiText").textContent=SUMMARY.text;
     $("aiTag").textContent=`נכתב על ידי AI (Gemini) ${ago(SUMMARY.created)}`;
   } else {
     $("aiText").textContent=ruleSummary();
     $("aiTag").textContent="סיכום אוטומטי מהנתונים";
   }
+  renderFavSum();
 }
 
 /* ================= load ================= */
@@ -627,10 +762,60 @@ async function load(){
 if(DATA&&Array.isArray(DATA.beaches)&&DATA.beaches.length===DATA.marine.length) BEACHES.splice(0,BEACHES.length,...DATA.beaches);
   if(!DATA){ $("updated").textContent="אין נתונים"; $("aiText").innerHTML='<span class="err">לא הצלחתי לטעון את התחזית. נסה לרענן את העמוד.</span>'; renderPeople(); return; }
   build();
+  /* open on what matters now: before sunrise -> today's best, after sunset -> tomorrow */
+  { const n=nowLocalISO(), b0=beaches[0]; if(b0.sunrise[0]&&n<b0.sunrise[0].slice(0,13)+":00") selDay=0; else if(b0.sunset[0]&&n>b0.sunset[0]&&DATA.dates.length>1) selDay=1; }
   $("updated").textContent="עודכן "+parseTS(DATA.updated).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",weekday:"short",hour:"2-digit",minute:"2-digit"});
   renderPeople(); renderForecast();
   setView(store.get("view","F")==="P"?"P":"F",true);
+  loadUserReports();
 }
+
+/* ================= surfer reports from the app (Supabase, optional: set in config.js) ================= */
+const CFG=window.GAL_CONFIG||{};
+const SB=CFG.supabaseUrl&&CFG.supabaseKey?{u:String(CFG.supabaseUrl).replace(/\/$/,""),k:CFG.supabaseKey}:null;
+const sbHead=()=>({apikey:SB.k,Authorization:`Bearer ${SB.k}`});
+const allReports=()=>[...USER_REPORTS,...((REPORTS&&REPORTS.reports)||[])];
+async function loadUserReports(){
+  if(!SB) return;
+  try{ const since=new Date(Date.now()-30*3600e3).toISOString();
+    const r=await fetch(`${SB.u}/rest/v1/reports?select=*&created_at=gte.${since}&order=created_at.desc&limit=80`,{headers:sbHead()}); if(!r.ok) return;
+    const rows=await r.json();
+    USER_REPORTS=rows.map(x=>{ let bi=BEACHES.findIndex(b=>b.n===x.beach_name); if(bi<0) bi=Number.isInteger(x.beach)&&BEACHES[x.beach]?x.beach:null;
+      return {beach:bi,spot:x.beach_name||"",source:"גולש באפליקציה",when:x.created_at,text:x.text||"",size:x.size||"",rating:x.rating,url:""}; });
+    renderPeople();
+  }catch(e){}
+}
+const RATES=[["1","שטוח"],["2","חלש"],["3","בסדר"],["4","טוב"],["5","אפי"]];
+const SIZES=["עד הברך","מותן","חזה","ראש","מעל הראש"];
+let repRate=null, repSize="";
+function openReport(beachIdx){
+  const last=store.get("lastReport",0); const dlg=$("repDlg");
+  const sel=$("repBeach"); const def=beachIdx!=null?beachIdx:([...favs][0]??(beaches.length?ranked()[0].b.idx:0));
+  sel.innerHTML=BEACHES.map((b,k)=>`<option value="${k}"${k===def?" selected":""}>${esc(b.n)}</option>`).join("");
+  repRate=null; repSize=""; $("repText").value=""; $("repMsg").textContent=""; $("repSend").disabled=false;
+  $("repRates").innerHTML=RATES.map(([v,l])=>`<button type="button" aria-pressed="false" data-v="${v}"><span>${v}</span>${l}</button>`).join("");
+  $("repSizes").innerHTML=SIZES.map(z=>`<button type="button" class="chipbtn" aria-pressed="false" data-z="${z}">${z}</button>`).join("");
+  $("repRates").querySelectorAll("button").forEach(b=>b.onclick=()=>{repRate=+b.dataset.v; $("repRates").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));});
+  $("repSizes").querySelectorAll("button").forEach(b=>b.onclick=()=>{repSize=repSize===b.dataset.z?"":b.dataset.z; $("repSizes").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.z===repSize)));});
+  if(Date.now()-last<15*60e3) $("repMsg").textContent="כבר דיווחת לפני רגע. אפשר שוב בעוד כמה דקות.";
+  if(sheetOpen) closeSheet();
+  dlg.showModal();
+}
+$("reportBtn").onclick=()=>openReport(null);
+$("repCancel").onclick=()=>$("repDlg").close();
+$("repForm").addEventListener("submit",async e=>{
+  e.preventDefault(); if(!SB) return;
+  if(repRate==null){ $("repMsg").innerHTML='<span class="err">בחר איך היו הגלים (1 עד 5).</span>'; return; }
+  if(Date.now()-store.get("lastReport",0)<15*60e3){ $("repMsg").textContent="כבר דיווחת לפני רגע. אפשר שוב בעוד כמה דקות."; return; }
+  const k=+$("repBeach").value; $("repSend").disabled=true; $("repMsg").textContent="שולח…";
+  try{
+    const r=await fetch(`${SB.u}/rest/v1/reports`,{method:"POST",headers:{...sbHead(),"Content-Type":"application/json",Prefer:"return=minimal"},
+      body:JSON.stringify({beach:k,beach_name:BEACHES[k].n,rating:repRate,size:repSize,text:$("repText").value.trim().slice(0,200)})});
+    if(!r.ok) throw new Error(r.status);
+    store.set("lastReport",Date.now()); $("repDlg").close(); toast("תודה! הדיווח שלך עלה לכולם"); loadUserReports();
+  }catch(err){ $("repMsg").innerHTML='<span class="err">לא הצלחתי לשלוח. נסה שוב.</span>'; $("repSend").disabled=false; }
+});
+function toast(t){ const d=document.createElement("div"); d.className="toast"; d.setAttribute("role","status"); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),3200); }
 setView("F",true); load();
 
 /* ================= ocean shader ================= */

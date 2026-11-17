@@ -19,8 +19,44 @@
 
 האפליקציה תהיה זמינה בכתובת `https://<שם-המשתמש>.github.io/gal-hayom/`. בטלפון אפשר להוסיף אותה למסך הבית.
 
+## סרטונים אמיתיים מיוטיוב (מומלץ)
+
+1. נכנסים ל-[console.cloud.google.com](https://console.cloud.google.com) עם חשבון גוגל ויוצרים פרויקט חדש (למשל `gal-hayom`).
+2. בחיפוש למעלה כותבים **YouTube Data API v3**, נכנסים ולוחצים **Enable**.
+3. בתפריט הולכים ל-**APIs & Services ← Credentials ← Create credentials ← API key** ומעתיקים את המפתח.
+4. במאגר ב-GitHub: **Settings ← Secrets and variables ← Actions ← New repository secret**.
+   שם: `YOUTUBE_API_KEY`. ערך: המפתח.
+
+מהריצה הבאה של הרובוט יופיעו בכל חוף סרטונים מהיומיים האחרונים. כשאין סרטונים, כתוב שאין.
+
+## דיווחי גולשים מתוך האפליקציה
+
+1. נרשמים בחינם ל-[supabase.com](https://supabase.com) ויוצרים פרויקט חדש (**New project**).
+2. בפרויקט נכנסים ל-**SQL Editor**, מדביקים את הקוד הבא ולוחצים **Run**:
+
+```sql
+create table reports (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  beach int,
+  beach_name text not null check (char_length(beach_name) <= 60),
+  rating int not null check (rating between 1 and 5),
+  size text default '' check (char_length(size) <= 20),
+  text text default '' check (char_length(text) <= 200)
+);
+alter table reports enable row level security;
+create policy "anyone can read" on reports for select using (true);
+create policy "anyone can add" on reports for insert with check (true);
+```
+
+3. נכנסים ל-**Project Settings ← API** ומעתיקים שני דברים: **Project URL**, והמפתח **anon public**.
+4. בקובץ `config.js` מדביקים אותם בין המירכאות, ומעלים את הקובץ למאגר.
+
+הכפתור "הייתי במים, אני מדווח" יופיע לבד. המפתח הזה ציבורי ובטוח לפרסום, כי הוא מאפשר רק לקרוא דיווחים ולהוסיף חדשים.
+
 ## הערות
 
 - הנתונים נשמרים בתיקייה `data/`, והרובוט מעדכן אותם לבד.
+- חוף חדש מוסיפים רק בסוף הרשימה ב-`scripts/update.rb`, ומוסיפים לו גם כיוון ב-`FACES`.
 - אפשר להחליף את המודל של Gemini דרך **Settings ← Variables**, במשתנה `GEMINI_MODEL`.
 - אחרי 60 יום בלי שום פעילות, GitHub עוצר רובוטים מתוזמנים. העדכונים שהרובוט עצמו שומר נחשבים פעילות.

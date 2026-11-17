@@ -49,6 +49,11 @@ BEACHES = [
 ["זיקים", 31.610, 34.505, "דרום", []]
 ].freeze
 
+# Direction each beach faces toward the open sea (degrees, compass). Used for offshore/onshore wind and swell exposure.
+FACES = [265, 270, 270, 250, 290, 340, 265, 275, 280, 282, 285, 285, 285, 287, 288, 288, 290, 290, 290, 290,
+         290, 290, 292, 293, 295, 298, 298, 300, 302, 303].freeze
+raise "FACES size mismatch" unless FACES.size == BEACHES.size
+
 def get_json(url, tries: 3)
 tries.times do |i|
 uri = URI(url)
@@ -74,13 +79,13 @@ def update_forecast
 lat = BEACHES.map { |b| b[1] }.join(",")
 lon = BEACHES.map { |b| b[2] }.join(",")
 tz = "Asia%2FJerusalem"
-marine = get_json("https://marine-api.open-meteo.com/v1/marine?latitude=#{lat}&longitude=#{lon}&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,sea_surface_temperature&forecast_days=5&timezone=#{tz}")
+marine = get_json("https://marine-api.open-meteo.com/v1/marine?latitude=#{lat}&longitude=#{lon}&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature&forecast_days=5&timezone=#{tz}")
 wind = get_json("https://api.open-meteo.com/v1/forecast?latitude=#{lat}&longitude=#{lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&daily=sunrise,sunset&forecast_days=5&timezone=#{tz}")
 unless marine.is_a?(Array) && wind.is_a?(Array) && marine.size == BEACHES.size && wind.size == BEACHES.size
 warn "forecast fetch failed - keeping previous data.json"
 return false
 end
-beaches = BEACHES.map { |b| { "n" => b[0], "r" => b[3], "cams" => b[4].map { |u, n| { "u" => u, "n" => n } } } }
+beaches = BEACHES.each_with_index.map { |b, k| { "n" => b[0], "r" => b[3], "f" => FACES[k], "cams" => b[4].map { |u, n| { "u" => u, "n" => n } } } }
 write_json("data.json", { "updated" => Time.now.iso8601, "beaches" => beaches, "marine" => marine, "wind" => wind })
 true
 end
@@ -92,16 +97,25 @@ return 6.5 + [1, (h - 1) / 0.8].min * 2 if h <= 2.2
 [3, 8.5 - (h - 2.2) * 2.2].max
 end
 
-def wind_type(dir, spd)
-on = Math.cos((dir.to_f - 270) * Math::PI / 180)
+def wind_type(dir, spd, face = 270)
+on = Math.cos((dir.to_f - face) * Math::PI / 180)
 return [on, "כמעט בלי רוח"] if spd.to_f < 8
 [on, on > 0.5 ? "רוח מהים" : on < -0.4 ? "רוח מהיבשה" : "רוח צד"]
 end
 
-def hour_score(h, t, spd, dir)
+# How much of a swell coming FROM sdir reaches a beach facing `face` (1 = straight in, 0.1 = blocked).
+def exposure(sdir, face)
+return 1.0 if sdir.nil?
+d = ((sdir.to_f - face + 540) % 360 - 180).abs
+return 0.1 if d >= 90
+[Math.cos(d * Math::PI / 180)**0.7, 0.1].max
+end
+
+def hour_score(h, t, spd, dir, face = 270, sdir = nil)
 return nil if h.nil?
+h *= exposure(sdir, face)
 s = height_score(h) + [[(t.to_f - 4) / 5, 0].max, 1].min * 2
-on, = wind_type(dir, spd)
+on, = wind_type(dir, spd, face)
 spd = spd.to_f
 s += on.positive? ? -[4, (spd / 28) * 3.5 * on].min : [1, -on * (spd < 25 ? 1 : 0.3)].min
 s -= 1.5 if spd > 35
@@ -121,8 +135,9 @@ m = d["marine"][k]["hourly"]; w = d["wind"][k]["hourly"]; dl = d["wind"][k]["dai
 row = lambda do |i|
 h = [m["wave_height"][i], m["swell_wave_height"][i]].compact.max
 t = [m["wave_period"][i], m["swell_wave_period"][i]].compact.max
-sc = hour_score(h, t, w["wind_speed_10m"][i], w["wind_direction_10m"][i])
-_, wt = wind_type(w["wind_direction_10m"][i], w["wind_speed_10m"][i])
+sdir = (m["swell_wave_direction"] || [])[i] || (m["wave_direction"] || [])[i]
+sc = hour_score(h, t, w["wind_speed_10m"][i], w["wind_direction_10m"][i], FACES[k], sdir)
+_, wt = wind_type(w["wind_direction_10m"][i], w["wind_speed_10m"][i], FACES[k])
 { i: i, s: sc, txt: "ציון #{sc ? sc.round(1) : '-'}, גל #{h ? h.round(1) : '-'}מ, מחזור #{t ? t.round : '-'}ש, #{wt} #{w['wind_speed_10m'][i].to_f.round}קמ\"ש" }
 end
 best = lambda do |date, from|
@@ -186,27 +201,28 @@ j = get_json(url, tries: 1)
 end
 
 def collect_youtube
-after = (Time.now - 26 * 3600).utc.iso8601
-queries = BEACHES.map { |b| "גלישה #{b[0].split(' – ')[0].split(' / ')[0]}" }.uniq + ["גלישה גלים היום", "surf israel"]
+after = (Time.now - 48 * 3600).utc.iso8601
+queries = BEACHES.each_with_index.map { |b, k| ["גלישה #{b[0].split(' – ')[0].split(' / ')[0]}", k] }.uniq { |q, _| q } + [["גלישה גלים היום", nil], ["surf israel", nil]]
 seen = {}
 vids = []
-queries.each do |q|
+queries.each do |q, k|
 youtube_search(q, after).each do |it|
 id = it.dig("id", "videoId")
 next if id.nil? || seen[id]
 seen[id] = true
 s = it["snippet"] || {}
-vids << { "id" => id, "title" => s["title"].to_s, "desc" => s["description"].to_s[0, 300], "channel" => s["channelTitle"].to_s, "when" => s["publishedAt"].to_s }
+vids << { "id" => id, "title" => s["title"].to_s, "desc" => s["description"].to_s[0, 300], "channel" => s["channelTitle"].to_s, "when" => s["publishedAt"].to_s, "q" => k }
 end
 end
 vids
 end
 
+# Gemini checks which videos really show Israeli surf/sea conditions and tags each with a beach.
 def youtube_reports(vids)
-return {} if vids.empty?
-list = vids.each_with_index.map { |v, i| "#{i}. [#{v['when']}] #{v['channel']}: #{v['title']} | #{v['desc']}" }.join("\n")
+return { "reports" => [], "videos" => {} } if vids.empty?
+list = vids.each_with_index.map { |v, i| "#{i}. [#{v['when']}] #{v['channel']}: #{v['title']} | #{v['desc']}#{v['q'] ? " (נמצא בחיפוש על #{BEACHES[v['q']][0]})" : ''}" }.join("\n")
 yprompt = <<~P
-הנה סרטוני יוטיוב שעלו ב-26 השעות האחרונות.
+הנה סרטוני יוטיוב שעלו ב-48 השעות האחרונות.
 בחר רק סרטונים שמראים או מתארים את מצב הים או סשן גלישה בחוף בישראל מהיום או מאתמול.
 דלג על פרסומות, שיעורים כלליים, חו"ל, סרטונים ישנים שהועלו מחדש ודברים שלא קשורים לים.
 התאם כל סרטון לאינדקס חוף (או null): #{BEACH_INDEX_TEXT}.
@@ -218,44 +234,81 @@ yprompt = <<~P
 P
 text, = (gemini(yprompt) rescue ["", []])
 j = extract_json(text) || {}
-j["reports"] = (j["reports"] || []).filter_map do |r|
+videos = Hash.new { |h, k| h[k] = [] }
+reports = (j["reports"] || []).filter_map do |r|
 v = r.is_a?(Hash) && r["video"].is_a?(Integer) ? vids[r["video"]] : nil
 next unless v
+if r["beach"].is_a?(Integer) && r["beach"].between?(0, BEACHES.size - 1)
+videos[r["beach"].to_s] << { "id" => v["id"], "title" => v["title"][0, 120], "channel" => v["channel"][0, 60], "when" => v["when"] }
+end
 r.merge("url" => "https://www.youtube.com/watch?v=#{v['id']}", "when" => v["when"], "source" => "יוטיוב")
 end
-j
+{ "reports" => reports, "videos" => videos.transform_values { |a| a.first(4) } }
 end
 
 def update_people
 now = Time.now
+yt = { "reports" => [], "videos" => {} }
 if ENV["YOUTUBE_API_KEY"].to_s != ""
 vids = collect_youtube
 puts "youtube: #{vids.size} videos"
-j = youtube_reports(vids)
-j["sources_checked"] = ["יוטיוב"]
-chunks = []
-else
-j, chunks = search_reports(now)
+yt = youtube_reports(vids)
 end
-report_cleanup_and_summary(now, j, chunks)
+web, chunks = search_reports(now)
+merged = { "reports" => yt["reports"] + (web["reports"] || []),
+           "sources_checked" => (ENV["YOUTUBE_API_KEY"].to_s != "" ? ["יוטיוב"] : []) + (web["sources_checked"] || []) }
+report_cleanup_and_summary(now, merged, chunks, yt["videos"])
 end
 
+# Step 1: let Gemini search Google and write freely (grounding works best without a forced format).
+# Step 2: turn that text + the real source links into JSON, without search.
 def search_reports(now)
 prompt = <<~P
 עכשיו #{now.strftime('%Y-%m-%d %H:%M')} שעון ישראל.
-חפש בגוגל דיווחים של גולשים אמיתיים על מצב הים והגלים בחופי הים התיכון בישראל מ-24 השעות האחרונות.
-רק דברים שאנשים כתבו או צילמו בעצמם: פוסטים פתוחים, סרטונים שהועלו היום או אתמול, דיווחים יומיים של בתי ספר לגלישה, פורומים וכתבות על מצב הים היום.
-אל תכלול מספרים אוטומטיים מאתרי תחזית. אל תמציא. רשימה ריקה היא תשובה תקינה.
-התאם כל דיווח לאינדקס חוף (או null): #{BEACH_INDEX_TEXT}.
-החזר JSON בלבד במבנה:
-{"reports":[{"beach":<מספר או null>,"spot":"","source":"","when":"<ISO 8601>","text":"","size":"","rating":<1-5 או null>,"url":""}],"sources_checked":[""]}
-עד 12 דיווחים, החדשים קודם.
+חפש בגוגל דיווחים של גולשים על מצב הים והגלים בחופים בישראל מ-48 השעות האחרונות.
+כדאי לחפש בין השאר: "גלים היום", "מצב הים היום", "surf report Israel", שמות חופים עם המילה "גלישה", דיווחים יומיים של בתי ספר לגלישה, סרטונים ופוסטים פתוחים.
+רק דברים שאנשים כתבו או צילמו בעצמם. לא מספרים אוטומטיים של אתרי תחזית.
+כתוב רשימה קצרה: לכל דיווח, החוף, מתי זה פורסם, מה נאמר על הגלים, ומאיפה זה (שם האתר וקישור).
+אם לא מצאת כלום מהיומיים האחרונים, כתוב בדיוק: אין דיווחים.
 P
 text, chunks = (gemini(prompt, search: true) rescue ["", []])
-[extract_json(text) || {}, chunks]
+return [{ "reports" => [], "sources_checked" => [] }, chunks] if text.strip.empty? || text.include?("אין דיווחים") && text.size < 80
+links = chunks.map { |c| "#{c['title']} #{c['uri']}" }.first(20).join("\n")
+jprompt = <<~P
+הפוך את הטקסט הבא לרשימת דיווחי גולשים בפורמט JSON. אל תוסיף שום דבר שלא כתוב בטקסט.
+התאם כל דיווח לאינדקס חוף (או null): #{BEACH_INDEX_TEXT}.
+"when" בפורמט ISO 8601 עם אזור זמן +02:00. אם לא כתוב מתי, דלג על הדיווח.
+החזר JSON בלבד:
+{"reports":[{"beach":<מספר או null>,"spot":"","source":"<שם האתר>","when":"","text":"<משפט או שניים בעברית>","size":"","rating":<1-5 או null>,"url":""}],"sources_checked":["<שמות האתרים שנבדקו>"]}
+הטקסט:
+#{text}
+קישורי המקורות:
+#{links}
+P
+jtext, = (gemini(jprompt) rescue ["", []])
+[extract_json(jtext) || {}, chunks]
 end
-def report_cleanup_and_summary(now, j, chunks)
-cutoff = now - 30 * 3600
+
+def beach_summaries(ctx, now_hm, people)
+prompt = <<~P
+אתה גולש ותיק בישראל. לכל חוף ברשימה כתוב משפט אחד או שניים בעברית מדוברת: מתי הכי שווה להיכנס היום או מחר, לאיזה גלשן זה מתאים, ומה הבעיה אם יש (רוח מהים, שטוח, גדול מדי).
+אם יש דיווח גולשים על החוף, שלב אותו. בלי אימוג'י. אל תמציא נתונים.
+עכשיו #{now_hm}. תחזית:
+#{ctx}
+דיווחי גולשים:
+#{people}
+החזר JSON בלבד: {"beaches":{"<אינדקס החוף>":"<הסיכום>"}} כשהאינדקס הוא מיקום החוף ברשימה, מ-0.
+P
+text, = (gemini(prompt) rescue ["", []])
+j = extract_json(text) || {}
+(j["beaches"] || {}).each_with_object({}) do |(k, v), h|
+i = Integer(k.to_s, exception: false)
+h[i.to_s] = v.to_s.strip[0, 400] if i && i.between?(0, BEACHES.size - 1) && v.to_s.strip != ""
+end
+end
+
+def report_cleanup_and_summary(now, j, chunks, videos = {})
+cutoff = now - 48 * 3600
 reports = (j["reports"] || []).filter_map do |r|
 next unless r.is_a?(Hash) && r["text"].to_s.strip != ""
 t = (Time.parse(r["when"].to_s) rescue nil)
@@ -264,11 +317,11 @@ beach = r["beach"].is_a?(Integer) && r["beach"].between?(0, BEACHES.size - 1) ? 
 url = r["url"].to_s
 url = "" unless url.start_with?("http")
 { "beach" => beach, "spot" => r["spot"].to_s[0, 60], "source" => r["source"].to_s[0, 30], "when" => t.iso8601, "text" => r["text"].to_s[0, 300], "size" => r["size"].to_s[0, 30], "rating" => (r["rating"].is_a?(Numeric) ? r["rating"].clamp(1, 5) : nil), "url" => url }
-end.first(12)
-sources = (j["sources_checked"] || []).map(&:to_s).reject(&:empty?).first(8)
-sources = ["אינסטגרם", "פייסבוק", "יוטיוב", "טיקטוק", "רדיט", "אתרי גלישה", "חדשות"] if sources.empty?
-note = reports.empty? ? "בסריקה האחרונה לא נמצאו דיווחים של גולשים מה-24 שעות האחרונות." : ""
-write_json("reports.json", { "scanned" => now.iso8601, "sources_checked" => sources, "reports" => reports, "note" => note, "web_sources" => chunks.size })
+end.uniq { |r| [r["url"], r["text"]] }.sort_by { |r| r["when"] }.reverse.first(15)
+sources = (j["sources_checked"] || []).map(&:to_s).reject(&:empty?).uniq.first(8)
+sources = ["גוגל", "יוטיוב", "אתרי גלישה", "חדשות"] if sources.empty?
+note = reports.empty? ? "בסריקה האחרונה לא נמצאו דיווחים פתוחים של גולשים מהיומיים האחרונים. רוב הדיווחים יושבים בקבוצות סגורות, אז הכי טוב: דווחו כאן באפליקציה." : ""
+write_json("reports.json", { "scanned" => now.iso8601, "sources_checked" => sources, "reports" => reports, "videos" => videos, "youtube" => ENV["YOUTUBE_API_KEY"].to_s != "", "note" => note, "web_sources" => chunks.size })
 
 ctx, now_hm = forecast_context
 people = reports.empty? ? "אין דיווחי גולשים עדכניים." : reports.map { |r| "#{r['beach'] ? BEACHES[r['beach']][0] : r['spot']} (#{r['source']}): #{r['text']}#{r['rating'] ? " [דירוג #{r['rating']}/5]" : ''}" }.join("\n")
@@ -277,7 +330,7 @@ sprompt = <<~P
 עברית מדוברת וטבעית, 3–4 משפטים, בלי כותרות, בלי רשימות ובלי אימוג'י.
 ציין את החוף או שניים הכי טובים, את השעה הכי שווה, איזה גלשן מתאים (שורט/לונג/פאן), ואזור שכדאי לוותר עליו.
 אם יש דיווחי גולשים, שלב אותם ואמור אם הם מאשרים או סותרים את התחזית. אם אין, אל תמציא.
-ציון 0–10 = חישוב אוטומטי (גל, מחזור, רוח). רוח מהיבשה = טוב, רוח מהים = מבולגן.
+ציון 0–10 = חישוב אוטומטי (גל, מחזור, רוח, וכמה החוף חשוף לכיוון הסוול). רוח מהיבשה = טוב, רוח מהים = מבולגן.
 תחזית (שעון ישראל, עכשיו #{now_hm}):
 #{ctx}
 דיווחי גולשים מהרשת:
@@ -285,7 +338,11 @@ sprompt = <<~P
 P
 stext, = gemini(sprompt, search: false)
 stext = stext.strip
-write_json("summary.json", { "created" => Time.now.iso8601, "text" => stext }) unless stext.empty?
+per_beach = beach_summaries(ctx, now_hm, people)
+puts "beach summaries: #{per_beach.size}"
+old = (JSON.parse(File.read(File.join(DATA_DIR, "summary.json"))) rescue {})
+out = { "created" => Time.now.iso8601, "text" => stext.empty? ? old["text"].to_s : stext, "beaches" => per_beach.empty? ? (old["beaches"] || {}) : per_beach }
+write_json("summary.json", out) unless out["text"].empty? && out["beaches"].empty?
 end
 
 def people_due?
