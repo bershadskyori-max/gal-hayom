@@ -214,8 +214,27 @@ a{color:inherit}
 .besttime{display:flex;gap:10px;align-items:flex-start;font-weight:700;font-size:15px;border-radius:14px;padding:11px 13px;
   background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent),color-mix(in srgb,var(--accent-2) 6%,transparent))}
 .besttime svg{width:20px;height:20px;color:var(--accent);flex:none;margin-top:2px}
-.chart-wrap{overflow-x:auto;border-radius:14px}
-.chart{width:100%;min-width:430px;height:auto;display:block}
+.chart-wrap{border-radius:14px;position:relative}
+.chart{width:100%;height:auto;display:block;touch-action:pan-y;cursor:ew-resize;-webkit-user-select:none;user-select:none}
+.chart:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800;font-size:15px;padding:2px 2px 0}
+.readout .t{font-family:var(--display);font-size:30px;line-height:1}
+.readout .sc{display:inline-grid;place-items:center;min-width:34px;height:34px;border-radius:11px;font-family:var(--display);font-size:24px;color:#03231e}
+.readout .w{color:var(--muted);font-size:13px;font-weight:700}
+.chart-hint{font-size:12px;color:var(--muted);font-weight:700;text-align:center;margin-top:-6px}
+.ftable{border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.ftable table{width:100%;border-collapse:collapse;font-size:14px}
+.ftable th{font-size:11.5px;color:var(--muted);font-weight:800;text-align:center;padding:7px 4px;background:color-mix(in srgb,var(--bg) 40%,transparent)}
+.ftable td{text-align:center;padding:7px 4px;border-top:1px solid var(--line);font-weight:700}
+.ftable tr.dayrow td{background:color-mix(in srgb,var(--accent-2) 14%,transparent);font-weight:800;text-align:start;padding:7px 12px;font-size:13.5px}
+.ftable tr[data-i]{cursor:pointer;transition:background .15s}
+.ftable tr[data-i]:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.ftable tr.night td{color:var(--muted);font-weight:600}
+.ftable tr.on{background:color-mix(in srgb,var(--accent) 20%,transparent)!important}
+.ftable td .h{font-size:16px;font-weight:800}
+.ftable .wk{display:block;font-size:11px;font-weight:700}
+.wk.off{color:var(--good)} .wk.on{color:var(--poor)} .wk.cross{color:var(--ok)} .wk.calm{color:var(--muted)}
+.ftable .scb{display:inline-grid;place-items:center;width:30px;height:28px;border-radius:9px;font-family:var(--display);font-size:20px;color:#03231e}
 .links{display:flex;flex-wrap:wrap;gap:8px}
 .links a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:700;font-size:14px;padding:9px 14px;border-radius:99px;
   background:color-mix(in srgb,var(--bg) 35%,transparent);border:1px solid var(--line);min-height:42px}
@@ -462,13 +481,14 @@ function hourScore(b,i){
 }
 const wInfo=(b,i)=>windInfo(b.wdir[i],b.wind[i],b.f);
 function rescore(){ beaches.forEach(o=>{o.scores=o.times.map((_,i)=>hourScore(o,i));}); }
-const scoreClass=s=>s==null?"s-flat":s>=6.5?"s-good":s>=4?"s-ok":s>=1.5?"s-poor":"s-flat";
+/* classes use the rounded score, so the number shown and its color always agree */
+const scoreClass=s=>{ if(s==null) return "s-flat"; const r=Math.round(s); return r>=7?"s-good":r>=4?"s-ok":r>=2?"s-poor":"s-flat"; };
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const scoreColor=s=>cssVar(s>=6.5?"--good":s>=4?"--ok":s>=1.5?"--poor":"--flat");
+const scoreColor=s=>{ const r=Math.round(s||0); return cssVar(r>=7?"--good":r>=4?"--ok":r>=2?"--poor":"--flat"); };
 const fmt=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toFixed(d);
 const compass=d=>COMPASS[Math.round(((d%360)+360)%360/45)%8];
 const windWord=t=>({off:"רוח מהיבשה",on:"רוח מהים",cross:"רוח צד",calm:"כמעט בלי רוח"})[t];
-function scoreWord(s){ if(s==null) return "אין נתונים"; if(s>=8) return "אפי, לרוץ למים"; if(s>=6.5) return "עובד טוב"; if(s>=4) return "גליש, שווה בדיקה"; if(s>=1.5) return "חלש"; return "שטוח"; }
+function scoreWord(s){ if(s==null) return "אין נתונים"; const r=Math.round(s); if(r>=8) return "אפי, לרוץ למים"; if(r>=7) return "עובד טוב"; if(r>=4) return "גליש, שווה בדיקה"; if(r>=2) return "חלש"; return "שטוח"; }
 
 /* ================= time ================= */
 function nowLocalISO(){
@@ -518,7 +538,7 @@ function renderDays(){
   mk("now","עכשיו",beaches[0].times[DATA.nowI].slice(11,16),nowBest);
   DATA.dates.forEach((d,i)=>{const best=Math.max(...beaches.map(b=>{const k=bestWindow(b,i);return k==null?0:(b.scores[k]??0)})); mk(i,dayLabel(d,i),d.slice(8,10)+"/"+d.slice(5,7),best);});
 }
-let ringAnim=null;
+let ringAnim=null, CH=null, curI=0, curB=null;
 function renderHero(){
   const top=ranked()[0]; const b=top.b, i=top.i;
   const dl=selDay==="now"?"":selDay===0?"היום":selDay===1?"מחר":`ביום ${dayLabel(DATA.dates[selDay],selDay)}`;
@@ -595,6 +615,7 @@ function chartSVG(b){
   const W=600,H=180,pl=30,pr=8,pt=14,pb=38,n=b.times.length;
   const maxH=Math.max(1.5,Math.ceil(Math.max(...b.wave.filter(v=>v!=null))*2)/2);
   const x=i=>W-pr-(i/(n-1))*(W-pl-pr), y=v=>pt+(1-v/maxH)*(H-pt-pb);
+  CH={W,H,pl,pr,pt,pb,n,x,y};
   let d="",st=false; b.wave.forEach((v,i)=>{ if(v==null) return; d+=(st?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1); st=true;});
   const area=d+`L${x(n-1)} ${y(0)}L${x(0)} ${y(0)}Z`;
   const mu=cssVar("--muted"), ln=cssVar("--line"), ac=cssVar("--accent"), ac2=cssVar("--accent-2"), sun=cssVar("--sun");
@@ -610,7 +631,50 @@ function chartSVG(b){
    ${night}${grid}<path d="${area}" fill="url(#ga)"/><path d="${d}" fill="none" stroke="${ac}" stroke-width="2.4" stroke-linejoin="round"/>
    ${strip}${days}<line x1="${nx}" x2="${nx}" y1="${pt}" y2="${H-pb}" stroke="${sun}" stroke-width="2" stroke-dasharray="3 3"/>
    <circle cx="${nx}" cy="${y(b.wave[DATA.nowI]??0)}" r="5" fill="${sun}" stroke="${cssVar("--bg")}" stroke-width="2"/>
-   <text x="${W-pr}" y="${pt-3}" font-size="10" fill="${mu}" text-anchor="end">מטר · אזור כהה = לילה</text></svg>`;
+   <text x="${W-pr}" y="${pt-3}" font-size="10" fill="${mu}" text-anchor="end">מטר · אזור כהה = לילה</text>
+   <g pointer-events="none"><line id="curL" x1="0" x2="0" y1="${pt}" y2="${H-pb+14}" stroke="${ac}" stroke-width="2.5"/><circle id="curC" cx="0" cy="0" r="7" fill="#fff" stroke="${ac}" stroke-width="3"/></g></svg>`;
+}
+
+/* ================= hour inspector: drag on the chart or tap a table row ================= */
+function factsHTML(b,i){
+  return `<div class="fact"><small>גובה גל</small><b>${fmt(b.wave[i])} מ׳</b></div>
+    <div class="fact"><small>מחזור</small><b>${fmt(b.period[i],0)} שנ׳</b></div>
+    <div class="fact"><small>רוח מ${compass(b.wdir[i])}</small><b>${fmt(b.wind[i],0)} <span style="font-size:12px">קמ״ש</span></b></div>
+    <div class="fact"><small>מים / אוויר</small><b>${fmt(b.sst[i],0)}° / ${fmt(b.air[i],0)}°</b></div>`;
+}
+const dayOf=(b,i)=>{const k=b.dates.indexOf(b.times[i].slice(0,10)); return k<0?"":dayLabel(b.dates[k],k);};
+const WK={off:"מהיבשה",on:"מהים",cross:"צד",calm:"שקט"};
+function tableHTML(b){
+  let h=`<table><thead><tr><th>שעה</th><th>גל</th><th>מחזור</th><th>רוח</th><th>ציון</th></tr></thead><tbody>`;
+  b.dates.forEach((dt,k)=>{
+    h+=`<tr class="dayrow"><td colspan="5">${dayLabel(dt,k)} · ${dt.slice(8,10)}/${dt.slice(5,7)}</td></tr>`;
+    for(let hr=0;hr<24;hr+=3){ const i=b.times.indexOf(`${dt}T${String(hr).padStart(2,"0")}:00`); if(i<0) continue;
+      const t=b.times[i], night=t<b.sunrise[k].slice(0,13)+":00"||t>b.sunset[k]; const w=wInfo(b,i), s=b.scores[i];
+      h+=`<tr data-i="${i}" class="${night?"night":""}"><td class="num">${t.slice(11,16)}</td><td class="num"><span class="h">${fmt(b.wave[i])}</span> מ׳</td><td class="num">${fmt(b.period[i],0)} שנ׳</td>
+        <td class="num">${fmt(b.wind[i],0)} ${ICON.arrow((b.wdir[i]+180)%360)}<span class="wk ${w.type}">${WK[w.type]}</span></td>
+        <td><span class="scb num ${scoreClass(s)}">${s==null?"–":Math.round(s)}</span></td></tr>`; }
+  });
+  return h+`</tbody></table>`;
+}
+function setCursor(b,i){
+  curI=i; const L=$("curL"), C=$("curC"); if(!L||!CH) return;
+  const x=CH.x(i), y=CH.y(b.wave[i]??0);
+  L.setAttribute("x1",x); L.setAttribute("x2",x); C.setAttribute("cx",x); C.setAttribute("cy",y);
+  $("facts").innerHTML=factsHTML(b,i);
+  const s=b.scores[i], w=wInfo(b,i);
+  $("readout").innerHTML=`<span><span class="t num">${dayOf(b,i)} ${b.times[i].slice(11,16)}</span><br><span class="w">${fmt(b.wave[i])} מ׳ · ${fmt(b.period[i],0)} שנ׳ · ${windWord(w.type)} ${fmt(b.wind[i],0)} קמ״ש</span></span><span>${scoreWord(s)} <span class="sc num ${scoreClass(s)}">${s==null?"–":Math.round(s)}</span></span>`;
+  $("sheetBody").querySelectorAll(".ftable tr[data-i]").forEach(r=>r.classList.toggle("on",+r.dataset.i===i));
+}
+function bindChart(b,i0){
+  curB=b; const svg=$("sheetBody").querySelector(".chart"); if(!svg) return;
+  svg.setAttribute("tabindex","0"); svg.setAttribute("aria-label","גרף גלים. חצים ימינה ושמאלה להזזת השעה");
+  const pick=e=>{ const r=svg.getBoundingClientRect(); const px=(e.clientX-r.left)*CH.W/r.width;
+    let i=Math.round((CH.W-CH.pr-px)/(CH.W-CH.pl-CH.pr)*(CH.n-1)); i=Math.max(0,Math.min(CH.n-1,i)); if(i!==curI) setCursor(b,i); };
+  svg.addEventListener("pointerdown",e=>{ e.stopPropagation(); try{svg.setPointerCapture(e.pointerId)}catch(_){} pick(e); });
+  svg.addEventListener("pointermove",e=>{ if(e.pointerType==="mouse"||svg.hasPointerCapture(e.pointerId)) pick(e); });
+  svg.addEventListener("keydown",e=>{ if(e.key==="ArrowLeft"||e.key==="ArrowRight"){ e.preventDefault(); setCursor(b,Math.max(0,Math.min(CH.n-1,curI+(e.key==="ArrowLeft"?1:-1)))); } });
+  $("sheetBody").querySelectorAll(".ftable tr[data-i]").forEach(r=>r.onclick=()=>{ setCursor(b,+r.dataset.i); $("readout").scrollIntoView({behavior:REDUCE?"auto":"smooth",block:"center"}); });
+  setCursor(b,i0);
 }
 
 /* ================= sheet (drag, momentum projection, rubber-band, interruptible springs) ================= */
@@ -631,15 +695,13 @@ function openSheet(b,i,src){
   const vids=(REPORTS&&REPORTS.videos&&REPORTS.videos[b.idx])||[];
   const sd=b.sdir[i], ex=exposure(sd,b.f);
   $("sheetBody").innerHTML=`
-   <div class="facts num">
-    <div class="fact"><small>גובה גל</small><b>${fmt(b.wave[i])} מ׳</b></div>
-    <div class="fact"><small>מחזור</small><b>${fmt(b.period[i],0)} שנ׳</b></div>
-    <div class="fact"><small>רוח מ${compass(b.wdir[i])}</small><b>${fmt(b.wind[i],0)} <span style="font-size:12px">קמ״ש</span></b></div>
-    <div class="fact"><small>מים / אוויר</small><b>${fmt(b.sst[i],0)}° / ${fmt(b.air[i],0)}°</b></div>
-   </div>
+   <div class="facts num" id="facts"></div>
    ${aiB?`<div class="aisum"><small>מה ה-AI אומר</small>${esc(aiB)}</div>`:""}
    <div class="besttime">${ICON.clock}<span>${[bt(today,"היום הכי טוב"),bt(tmr,"מחר הכי טוב")].filter(Boolean).join("<br>")||"לא נשאר היום חלון אור טוב"}</span></div>
+   <div class="readout" id="readout"></div>
    <div class="chart-wrap">${chartSVG(b)}</div>
+   <p class="chart-hint">גרור על הגרף כדי לראות כל שעה</p>
+   <div class="ftable">${tableHTML(b)}</div>
    <p class="sub-h">${windWord(w.type)} · משבים עד ${fmt(b.gust[i],0)} קמ״ש${sd!=null?` · הסוול מ${compass(sd)}, החוף פונה ל${compass(b.f)}${ex<0.6?" (מגיע חלש)":""}`:""}</p>
    <p class="sub-h">מה גולשים אמרו על החוף</p>
    ${rep.length?rep.map((r,k)=>reportHTML(r,k)).join(""):`<p class="none">אין דיווחים מהיממה האחרונה.</p>`}
@@ -649,6 +711,7 @@ function openSheet(b,i,src){
    <p class="sub-h">סרטונים מהיומיים האחרונים</p>
    ${vids.length?`<div class="vids">${vids.map(v=>`<a class="vid" href="https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}" target="_blank" rel="noopener"><img loading="lazy" src="https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/mqdefault.jpg" alt=""><span><b>${esc(v.title)}</b><small>${esc(v.channel||"יוטיוב")} · ${ago(v.when)}</small></span></a>`).join("")}</div>`:`<p class="none">אין סרטונים חדשים מהחוף הזה מהיומיים האחרונים.</p>`}`;
   const rb=$("sheetBody").querySelector("[data-report]"); if(rb) rb.onclick=()=>openReport(b.idx);
+  bindChart(b,i);
   sheet.style.visibility="visible"; scrim.classList.add("on"); sheetH=sheet.getBoundingClientRect().height+20;
   if(!sheetOpen && (!sheetAnim || sheetY>=sheetH-1)) setSheetY(sheetH);
   sheetOpen=true; $("sheetBody").scrollTop=0; animateSheet(0,0,1,.38);
