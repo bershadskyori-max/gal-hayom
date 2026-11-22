@@ -275,11 +275,13 @@ mix += drop * 0.85 * ramp(12.2, 12.26, tt)
 mix += sfx
 mix += voice * 1.0
 mix = np.tanh(mix * 1.1)
+# true comic silence: hard mute 8.25-9.15 s
+mix *= 1 - ramp(8.2, 8.25, tt) * (1 - ramp(9.12, 9.17, tt))
 # stereo: slight width via delayed copy on hats/pluck region
 L = mix.copy()
 R = np.concatenate([np.zeros(18), mix[:-18]]) * 0.97 + mix * 0.03
 st = np.stack([L, R], 1)
-st *= 0.95 / np.max(np.abs(st))
+st *= 0.66 / np.max(np.abs(st))  # leaves headroom for AAC true-peak overshoot
 fade = np.ones(N)
 fade[-int(0.08 * SR):] = np.linspace(1, 0, int(0.08 * SR))
 st *= fade[:, None]

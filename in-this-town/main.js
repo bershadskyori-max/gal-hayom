@@ -531,7 +531,7 @@ function updateCurtains(t) {
   const sx = lerp(0.24, 1.0, k);
   curL.scale.x = curR.scale.x = sx;
   if (t >= T_SCENE4 + 0.2) {
-    const cols = [0xff2fb0, 0x2fe8ff, 0xffd23a, 0x9a4bff, 0x3aff7a];
+    const cols = [0xff2fb0, 0x2fe8ff, 0xffd23a, 0xff7a2f, 0x3aff7a];
     const c = new THREE.Color(cols[Math.floor(t * BPS * 2) % cols.length]);
     const flash = 0.75 + 0.45 * Math.pow(1 - ((t * BPS * 2) % 1), 2);
     curtainMat.color.set(0x000000);
