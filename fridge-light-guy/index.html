@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fridge Light Guy</title>
+<style>
+@font-face { font-family: "Luckiest Guy"; src: url(vendor/fonts/luckiest-guy-latin-400-normal.woff2) format("woff2"); }
+html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+canvas { display: block; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+#vignette { background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,15,0.5) 100%); }
+.cap {
+  position: absolute; left: 70px; right: 150px; top: 230px; text-align: center;
+  font-family: "Luckiest Guy", sans-serif; font-size: 88px; line-height: 1.08; color: #fff; letter-spacing: 2px;
+  -webkit-text-stroke: 7px #0b0820; paint-order: stroke fill;
+  text-shadow: 0 8px 0 #0b0820, 0 0 30px rgba(120, 200, 255, 0.7);
+}
+.cap span { display: inline-block; opacity: 0; transform-origin: 50% 80%; }
+.cap .hl { color: #ffe14a; }
+#counter {
+  position: absolute; left: 0; right: 0; top: 1260px; text-align: center; opacity: 0;
+  font-family: "Luckiest Guy", sans-serif; color: #fff; -webkit-text-stroke: 8px #0b0820; paint-order: stroke fill;
+}
+#counter .lbl { font-size: 64px; display: block; }
+#counter .num { font-size: 210px; display: block; line-height: 1; color: #ff5a5a; text-shadow: 0 10px 0 #0b0820; }
+#after {
+  position: absolute; left: 0; right: 0; top: 200px; text-align: center; opacity: 0;
+  font-family: "Luckiest Guy", sans-serif; font-size: 170px; line-height: 0.95; color: #fff;
+  -webkit-text-stroke: 10px #0b0820; paint-order: stroke fill;
+}
+#after span { display: block; }
+#lights { position: absolute; left: 0; right: 0; top: 1330px; text-align: center; opacity: 0;
+  font-family: "Luckiest Guy", sans-serif; font-size: 120px; color: #ffe14a; -webkit-text-stroke: 9px #0b0820; paint-order: stroke fill; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage">
+  <div class="overlay" id="vignette"></div>
+  <div class="overlay" id="caps"></div>
+  <div class="overlay">
+    <div id="counter"><span class="lbl">DOOR OPENED</span><span class="num">0</span></div>
+    <div id="after"><span>AFTER</span><span>HOURS</span></div>
+    <div id="lights">LIGHTS OUT!</div>
+  </div>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>
