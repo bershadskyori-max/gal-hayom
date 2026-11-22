@@ -160,7 +160,7 @@ mix = music * mus_gain * duck + sfx * 0.9 + amb + drop * ramp(12.45, 12.5) * 0.5
 mix = np.tanh(mix * 1.2)
 L = mix; R = np.concatenate([np.zeros(15), mix[:-15]]) * 0.96 + mix * 0.04
 st = np.stack([L, R], 1)
-st *= 0.66 / np.max(np.abs(st))
+st *= 0.77 / np.max(np.abs(st))
 st[-int(0.08 * SR):] *= np.linspace(1, 0, int(0.08 * SR))[:, None]
 wavfile.write(out_path, SR, (st * 32767).astype(np.int16))
 print("wrote", out_path)
