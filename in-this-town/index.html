@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>In This Town</title>
+<style>
+@font-face { font-family: "Luckiest Guy"; src: url(vendor/fonts/luckiest-guy-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Heebo"; font-weight: 900; src: url(vendor/fonts/heebo-hebrew-900-normal.woff2) format("woff2"); unicode-range: U+0590-05FF; }
+@font-face { font-family: "Heebo"; font-weight: 900; src: url(vendor/fonts/heebo-latin-900-normal.woff2) format("woff2"); }
+html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+canvas { display: block; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+#vignette { background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(10,0,25,0.55) 100%); }
+.cap {
+  position: absolute; left: 60px; right: 60px; top: 250px; text-align: center;
+  font-family: "Luckiest Guy", sans-serif; font-size: 92px; line-height: 1.08; color: #fff;
+  letter-spacing: 2px;
+  -webkit-text-stroke: 7px #14051f; paint-order: stroke fill;
+  text-shadow: 0 8px 0 #14051f, 0 0 40px rgba(255, 60, 200, 0.85);
+}
+.cap span { display: inline-block; opacity: 0; transform-origin: 50% 80%; }
+.he {
+  position: absolute; left: 80px; right: 80px; text-align: center; direction: rtl;
+  font-family: "Heebo", sans-serif; font-weight: 900; font-size: 50px; color: #fff;
+  background: rgba(20, 5, 31, 0.72); border-radius: 18px; padding: 10px 26px;
+  width: fit-content; margin: 0 auto; opacity: 0;
+}
+#huss {
+  position: absolute; left: 0; right: 0; top: 190px; text-align: center;
+  font-family: "Luckiest Guy", sans-serif; font-size: 190px; line-height: 0.98; color: #fff;
+  -webkit-text-stroke: 10px #14051f; paint-order: stroke fill;
+}
+#huss span { display: block; opacity: 0; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage">
+  <div class="overlay" id="vignette"></div>
+  <div class="overlay">
+    <div class="cap" id="cap1"><span>In</span> <span>this</span> <span>town</span> <span>everybody</span> <span>goes</span> <span>out</span> <span>partying...</span></div>
+    <div class="he" id="he1" style="top: 1560px;">בעיר הזאת... כולם יוצאים למסיבות</div>
+    <div class="cap" id="cap2" style="font-size: 130px; top: 300px;"><span>...except</span> <span>me</span></div>
+    <div class="he" id="he2" style="top: 1560px;">חוץ ממני</div>
+    <div id="huss"><span>HUSS</span><span>HUSS</span><span>HUSS</span></div>
+  </div>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>
